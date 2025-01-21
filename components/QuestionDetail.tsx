@@ -20,7 +20,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Question, QuestionPhase, Answer } from '@/types/questions';
 import { EvidencePanel } from './EvidencePanel';
 import { ActionPanel } from './ActionPanel';
-import { formatUnits } from 'ethers/lib/utils';
+import { formatUnits } from 'ethers';
 import { VoteModal } from './VoteModal';
 import { formatDistanceToNow } from 'date-fns';
 import { mockEvidence } from '@/mocks/evidence';

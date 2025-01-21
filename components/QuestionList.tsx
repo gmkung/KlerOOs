@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Question, QuestionPhase } from '@/types/questions';
 import { formatDistanceToNow } from 'date-fns';
-import { formatUnits } from 'ethers/lib/utils';
+import { formatUnits } from 'ethers';
 
 interface QuestionListProps {
   questions: Question[];
