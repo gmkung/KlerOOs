@@ -1,10 +1,57 @@
 import { useState, useEffect } from "react";
 import { Question, QuestionPhase, Answer } from "@/types/questions";
-import { mockSubgraphData } from "@/mocks/questions";
+import { Chain } from "@/constants/chains";
+import { BRIDGES } from "@/constants/bridges";
 
+const ANSWERED_TOO_SOON =
+  "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
+const INVALID_ANSWER =
+  "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 const UNRESOLVED_ANSWER =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 const UNANSWERED = "0";
+
+const getQuestionsQuery = (chainName: string) => {
+  return (lastTimestamp: string) => `
+    query GetQuestions {
+      questions(
+        orderBy: createdTimestamp
+        orderDirection: desc
+        first: 1000
+        where: { 
+          arbitrator_in: ["${BRIDGES.filter(
+            (bridge) =>
+              bridge["Home Chain"] === chainName && bridge["Home Proxy"]
+          )
+            .map((bridge) =>
+              (bridge["Home Proxy"] as string).split("#")[0].toLowerCase()
+            )
+            .join('", "')}"],
+          createdTimestamp_lt: "${lastTimestamp}"
+        }
+      ) {
+        id
+        questionId
+        arbitrator
+        data
+        minBond
+        createdTimestamp
+        timeout
+        bounty
+        currentAnswer
+        currentAnswerBond
+        answerFinalizedTimestamp
+        isPendingArbitration
+        answers(orderBy: timestamp) {
+          id
+          answer
+          lastBond
+          timestamp
+        }
+      }
+    }
+  `;
+};
 
 const parseQuestionData = (data: string) => {
   const [title, options, category, language] = data.split("␟");
@@ -57,47 +104,101 @@ const transformSubgraphQuestion = (q: any): Question => {
     return 0;
   };
 
+  const parseAnswer = (answerHex: string) => {
+    // Convert answer hex to actual answer
+    if (answerHex === UNRESOLVED_ANSWER) return "Unanswered";
+    if (answerHex === ANSWERED_TOO_SOON) return "Answered Too Soon";
+    if (answerHex === INVALID_ANSWER) return "Invalid Answer";
+
+    return answerHex;
+  };
+
   return {
     id: q.questionId,
     title,
     description,
+    arbitrator: q.arbitrator,
     phase,
-    currentBond: q.bounty,
-    minimumBond: "1000000000000000", // 0.001 ETH as minimum
+    currentBond: q.currentAnswerBond || q.bounty,
+    minimumBond: q.minBond,
     timeRemaining: calculateTimeRemaining(),
     answers: q.answers.map((a: any) => ({
-      value: a.lastBond === "0" ? "Elena Lasconi" : "Cǎlin Georgescu", // Simplified - should parse currentAnswer hex
+      value: parseAnswer(a.answer),
       bond: a.lastBond,
       timestamp: parseInt(a.timestamp) * 1000,
-      provider: a.question.id.split("-")[0],
     })),
-    evidence: [], // Will be populated later when viewing details
+
     finalAnswer:
       phase === QuestionPhase.FINALIZED
-        ? q.currentAnswer === UNRESOLVED_ANSWER
-          ? "Unresolved"
-          : q.currentAnswer ===
-              "0x0000000000000000000000000000000000000000000000000000000000000001"
-            ? "Cǎlin Georgescu"
-            : "Elena Lasconi"
+        ? parseAnswer(q.currentAnswer)
         : undefined,
   };
 };
 
-export const useQuestions = () => {
+export const useQuestions = ({ selectedChain }: { selectedChain: Chain }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    const transformedQuestions = mockSubgraphData.data.questions.map(
-      transformSubgraphQuestion
-    );
-    setQuestions(transformedQuestions);
-    setLoading(false);
-  }, []);
+    let isActive = true; // Add cancellation flag
 
-  return {
-    questions,
-    loading,
-  };
+    const fetchQuestions = async () => {
+      try {
+        setLoading(true);
+        let allQuestions: Question[] = [];
+        let lastTimestamp = Math.floor(Date.now() / 1000).toString();
+        let shouldContinue = true;
+
+        while (shouldContinue) {
+          console.log(lastTimestamp);
+          const response = await fetch(selectedChain.subgraphUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: getQuestionsQuery(selectedChain.name)(lastTimestamp),
+            }),
+          });
+
+          const json = await response.json();
+          if (json.errors) {
+            console.error("GraphQL Errors:", json.errors);
+            break;
+          }
+
+          if (json.data.questions.length === 0) {
+            shouldContinue = false;
+            if (isActive) setHasMore(false);
+            break;
+          }
+
+          const transformedQuestions = json.data.questions.map(
+            transformSubgraphQuestion
+          );
+
+          if (transformedQuestions.length < 1000) {
+            shouldContinue = false;
+            if (isActive) setHasMore(false);
+          } else {
+            const lastQuestion = json.data.questions[json.data.questions.length - 1];
+            lastTimestamp = lastQuestion.createdTimestamp;
+          }
+
+          allQuestions = [...allQuestions, ...transformedQuestions];
+        }
+        if (isActive) setQuestions(allQuestions);
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+    return () => {
+      isActive = false;
+    };
+  }, [selectedChain]); // Remove hasMore from dependencies
+
+  return { questions, loading };
 };

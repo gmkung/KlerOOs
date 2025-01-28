@@ -11,7 +11,9 @@ import {
     CssBaseline,
     Stack,
     Tabs,
-    Tab
+    Tab,
+    ToggleButtonGroup,
+    ToggleButton
 } from '@mui/material';
 import { QuestionList } from '@/components/QuestionList';
 import { QuestionDetail } from '@/components/QuestionDetail';
@@ -21,6 +23,7 @@ import { useWallet } from '@/hooks/useWallet';
 import LooksOneIcon from '@mui/icons-material/LooksOne';
 import LooksTwoIcon from '@mui/icons-material/LooksTwo';
 import Looks3Icon from '@mui/icons-material/Looks3';
+import { SUPPORTED_CHAINS, type Chain } from '@/constants/chains';
 
 const theme = createTheme({
     typography: {
@@ -64,7 +67,8 @@ const theme = createTheme({
 
 export default function Home() {
     const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-    const { questions, loading: questionsLoading } = useQuestions();
+    const [selectedChain, setSelectedChain] = useState<Chain>(SUPPORTED_CHAINS[0]);
+    const { questions, loading: questionsLoading } = useQuestions({ selectedChain });
     const { address, isConnected } = useWallet();
     const [statusFilter, setStatusFilter] = useState<QuestionPhase | 'ALL'>('ALL');
 
@@ -74,6 +78,12 @@ export default function Home() {
 
     const handleBackToList = () => {
         setSelectedQuestion(null);
+    };
+
+    const handleChainChange = (event: React.MouseEvent<HTMLElement>, newChain: Chain | null) => {
+        if (newChain) {
+            setSelectedChain(newChain);
+        }
     };
 
     const filteredQuestions = questions.filter(q =>
@@ -195,6 +205,21 @@ export default function Home() {
                         </Stack>
                     </Box>
 
+                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+                        <ToggleButtonGroup
+                            value={selectedChain}
+                            exclusive
+                            onChange={handleChainChange}
+                            aria-label="chain selection"
+                        >
+                            {SUPPORTED_CHAINS.map((chain) => (
+                                <ToggleButton key={chain.id} value={chain}>
+                                    {chain.name}
+                                </ToggleButton>
+                            ))}
+                        </ToggleButtonGroup>
+                    </Box>
+
                     {!selectedQuestion && (
                         <Tabs
                             value={statusFilter}
@@ -222,6 +247,7 @@ export default function Home() {
                             userAddress={address}
                             isConnected={isConnected}
                             onBack={handleBackToList}
+                            selectedChain={selectedChain}
                         />
                     )}
                 </Container>

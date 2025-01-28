@@ -34,12 +34,13 @@ export interface Question {
   id: string;
   title: string;
   description: string;
+  arbitrator: string;
   phase: QuestionPhase;
   arbitrationStatus?: ArbitrationStatus;
   currentBond: string;
   timeRemaining: number;
   answers: Answer[];
-  evidence: Evidence[];
+
   finalAnswer?: string;
   disputeId?: number;
   appealPeriodEnd?: number;
