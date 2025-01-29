@@ -40,7 +40,7 @@ export interface Question {
   currentBond: string;
   timeRemaining: number;
   answers: Answer[];
-
+  createdTimestamp: number;
   finalAnswer?: string;
   disputeId?: number;
   appealPeriodEnd?: number;

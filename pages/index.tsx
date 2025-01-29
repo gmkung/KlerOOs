@@ -13,7 +13,8 @@ import {
     Tabs,
     Tab,
     ToggleButtonGroup,
-    ToggleButton
+    ToggleButton,
+    TextField
 } from '@mui/material';
 import { QuestionList } from '@/components/QuestionList';
 import { QuestionDetail } from '@/components/QuestionDetail';
@@ -68,7 +69,11 @@ const theme = createTheme({
 export default function Home() {
     const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
     const [selectedChain, setSelectedChain] = useState<Chain>(SUPPORTED_CHAINS[0]);
-    const { questions, loading: questionsLoading } = useQuestions({ selectedChain });
+    const [searchTerm, setSearchTerm] = useState('');
+    const { questions, loading: questionsLoading } = useQuestions({
+        selectedChain,
+        searchTerm
+    });
     const { address, isConnected } = useWallet();
     const [statusFilter, setStatusFilter] = useState<QuestionPhase | 'ALL'>('ALL');
 
@@ -104,19 +109,19 @@ export default function Home() {
                 >
                     <Toolbar>
                         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            <Box 
+                            <Box
                                 component="img"
                                 src="/kleros-logo-symbol-fullwhite.png"
                                 alt="Kleros Logo"
-                                sx={{ 
-                                    width: 40, 
+                                sx={{
+                                    width: 40,
                                     height: 40,
-                                    mr: 2 
-                                }} 
+                                    mr: 2
+                                }}
                             />
-                            <Typography 
-                                variant="h6" 
-                                component="div" 
+                            <Typography
+                                variant="h6"
+                                component="div"
                                 sx={{ flexGrow: 1 }}
                             >
                                 Kleros Optimistic Oracle
@@ -138,9 +143,9 @@ export default function Home() {
                     </Toolbar>
                 </AppBar>
 
-                <Container 
-                    maxWidth="lg" 
-                    sx={{ 
+                <Container
+                    maxWidth="lg"
+                    sx={{
                         mt: 4,
                         px: { xs: 2, sm: 4, md: 8, lg: 12 },
                         flex: 1
@@ -149,12 +154,12 @@ export default function Home() {
                     <Box sx={{ mb: 3 }}>
                         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3, justifyContent: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Typography 
-                                    variant="h4" 
-                                    component="h1" 
-                                    sx={{ 
+                                <Typography
+                                    variant="h4"
+                                    component="h1"
+                                    sx={{
                                         fontWeight: 700,
-                                        fontSize: { 
+                                        fontSize: {
                                             xs: '1.5rem',
                                             sm: '2.5rem',
                                         },
@@ -220,6 +225,18 @@ export default function Home() {
                         </ToggleButtonGroup>
                     </Box>
 
+                    <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Search questions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            startAdornment: <Box component="span" sx={{ color: 'text.secondary', mr: 1 }}>🔍</Box>
+                        }}
+                    />
+
                     {!selectedQuestion && (
                         <Tabs
                             value={statusFilter}
@@ -251,7 +268,7 @@ export default function Home() {
                         />
                     )}
                 </Container>
-                
+
                 <Box
                     component="footer"
                     sx={{

@@ -13,7 +13,7 @@ import {
     Typography
 } from '@mui/material';
 
-import { Question, QuestionPhase, Answer } from '@/types/questions';
+import { Question } from '@/types/questions';
 import { EvidencePanel } from './EvidencePanel';
 import { ActionPanel } from './ActionPanel';
 import { VoteModal } from './VoteModal';
@@ -23,6 +23,7 @@ import { QuestionHeader } from './question/QuestionHeader';
 import { AnswerHistory } from './question/AnswerHistory';
 import { MetaEvidencePanel } from './question/MetaEvidencePanel';
 import { useDisputeData } from '@/hooks/useDisputeData';
+import { useQuestions } from '@/hooks/useQuestions';
 
 interface QuestionDetailProps {
     question: Question;

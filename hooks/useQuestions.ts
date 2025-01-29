@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Question, QuestionPhase, Answer } from "@/types/questions";
 import { Chain } from "@/constants/chains";
 import { BRIDGES } from "@/constants/bridges";
@@ -12,45 +12,49 @@ const UNRESOLVED_ANSWER =
 const UNANSWERED = "0";
 
 const getQuestionsQuery = (chainName: string) => {
-  return (lastTimestamp: string) => `
-    query GetQuestions {
-      questions(
-        orderBy: createdTimestamp
-        orderDirection: desc
-        first: 1000
-        where: { 
-          arbitrator_in: ["${BRIDGES.filter(
-            (bridge) =>
-              bridge["Home Chain"] === chainName && bridge["Home Proxy"]
-          )
-            .map((bridge) =>
-              (bridge["Home Proxy"] as string).split("#")[0].toLowerCase()
+  return (lastTimestamp: string, searchTerm?: string) => {
+    const actualSearchTerm = searchTerm || "";
+    return `
+      query GetQuestions {
+        questions(
+          orderBy: createdTimestamp
+          orderDirection: desc
+          first: 1000
+          where: { 
+            arbitrator_in: ["${BRIDGES.filter(
+              (bridge) =>
+                bridge["Home Chain"] === chainName && bridge["Home Proxy"]
             )
-            .join('", "')}"],
-          createdTimestamp_lt: "${lastTimestamp}"
-        }
-      ) {
-        id
-        questionId
-        arbitrator
-        data
-        minBond
-        createdTimestamp
-        timeout
-        bounty
-        currentAnswer
-        currentAnswerBond
-        answerFinalizedTimestamp
-        isPendingArbitration
-        answers(orderBy: timestamp) {
+              .map((bridge) =>
+                (bridge["Home Proxy"] as string).split("#")[0].toLowerCase()
+              )
+              .join('", "')}"],
+            createdTimestamp_lt: "${lastTimestamp}"
+            ${actualSearchTerm ? `, data_contains: "${actualSearchTerm}"` : ""}
+          }
+        ) {
           id
-          answer
-          lastBond
-          timestamp
+          questionId
+          arbitrator
+          data
+          minBond
+          createdTimestamp
+          timeout
+          bounty
+          currentAnswer
+          currentAnswerBond
+          answerFinalizedTimestamp
+          isPendingArbitration
+          answers(orderBy: timestamp) {
+            id
+            answer
+            lastBond
+            timestamp
+          }
         }
       }
-    }
-  `;
+    `;
+  };
 };
 
 const parseQuestionData = (data: string) => {
@@ -122,6 +126,7 @@ const transformSubgraphQuestion = (q: any): Question => {
     currentBond: q.currentAnswerBond || q.bounty,
     minimumBond: q.minBond,
     timeRemaining: calculateTimeRemaining(),
+    createdTimestamp: parseInt(q.createdTimestamp),
     answers: q.answers.map((a: any) => ({
       value: parseAnswer(a.answer),
       bond: a.lastBond,
@@ -135,70 +140,52 @@ const transformSubgraphQuestion = (q: any): Question => {
   };
 };
 
-export const useQuestions = ({ selectedChain }: { selectedChain: Chain }) => {
+export const useQuestions = ({ 
+  selectedChain,
+  searchTerm = "",
+}: { 
+  selectedChain: Chain;
+  searchTerm?: string;
+}) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
+
+  const fetchQuestions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+
+      const response = await fetch(selectedChain.subgraphUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: getQuestionsQuery(selectedChain.name)(timestamp, searchTerm),
+        }),
+      });
+
+      const json = await response.json();
+      if (json.errors) {
+        console.error("GraphQL Errors:", json.errors);
+        return;
+      }
+
+      const newQuestions = json.data.questions.map(transformSubgraphQuestion);
+      setQuestions(newQuestions);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedChain, searchTerm]);
 
   useEffect(() => {
-    let isActive = true; // Add cancellation flag
-
-    const fetchQuestions = async () => {
-      try {
-        setLoading(true);
-        let allQuestions: Question[] = [];
-        let lastTimestamp = Math.floor(Date.now() / 1000).toString();
-        let shouldContinue = true;
-
-        while (shouldContinue) {
-          console.log(lastTimestamp);
-          const response = await fetch(selectedChain.subgraphUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              query: getQuestionsQuery(selectedChain.name)(lastTimestamp),
-            }),
-          });
-
-          const json = await response.json();
-          if (json.errors) {
-            console.error("GraphQL Errors:", json.errors);
-            break;
-          }
-
-          if (json.data.questions.length === 0) {
-            shouldContinue = false;
-            if (isActive) setHasMore(false);
-            break;
-          }
-
-          const transformedQuestions = json.data.questions.map(
-            transformSubgraphQuestion
-          );
-
-          if (transformedQuestions.length < 1000) {
-            shouldContinue = false;
-            if (isActive) setHasMore(false);
-          } else {
-            const lastQuestion = json.data.questions[json.data.questions.length - 1];
-            lastTimestamp = lastQuestion.createdTimestamp;
-          }
-
-          allQuestions = [...allQuestions, ...transformedQuestions];
-        }
-        if (isActive) setQuestions(allQuestions);
-      } catch (error) {
-        console.error("Error fetching questions:", error);
-      } finally {
-        if (isActive) setLoading(false);
-      }
-    };
-
+    setQuestions([]);
+    setLoading(true);
     fetchQuestions();
-    return () => {
-      isActive = false;
-    };
-  }, [selectedChain]); // Remove hasMore from dependencies
+  }, [selectedChain, searchTerm, fetchQuestions]);
 
-  return { questions, loading };
+  return { 
+    questions, 
+    loading
+  };
 };
