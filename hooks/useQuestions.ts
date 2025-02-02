@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Question, QuestionPhase, Answer } from "@/types/questions";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Question, QuestionPhase } from "@/types/questions";
 import { Chain } from "@/constants/chains";
 import { BRIDGES } from "@/constants/bridges";
 
@@ -11,50 +11,61 @@ const UNRESOLVED_ANSWER =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 const UNANSWERED = "0";
 
-const getQuestionsQuery = (chainName: string) => {
-  return (lastTimestamp: string, searchTerm?: string) => {
-    const actualSearchTerm = searchTerm || "";
-    return `
-      query GetQuestions {
-        questions(
-          orderBy: createdTimestamp
-          orderDirection: desc
-          first: 1000
-          where: { 
-            arbitrator_in: ["${BRIDGES.filter(
-              (bridge) =>
-                bridge["Home Chain"] === chainName && bridge["Home Proxy"]
+const BATCH_SIZE = 1000; // Number of questions to fetch per batch
+
+const getQuestionsQuery = (
+  chainName: string,
+  searchTerm: string,
+  lastCreatedTimestamp?: number
+) => {
+  const actualSearchTerm = searchTerm.trim() ? `data_contains_nocase: "${searchTerm.trim()}"` : "";
+  const timestampFilter = lastCreatedTimestamp
+    ? `createdTimestamp_lt: ${lastCreatedTimestamp}`
+    : "";
+
+  return `
+    query GetQuestions {
+      questions(
+        orderBy: createdTimestamp
+        orderDirection: desc
+        first: ${BATCH_SIZE}
+        where: { 
+          arbitrator_in: ["${BRIDGES.filter(
+            (bridge) =>
+              bridge["Home Chain"] === chainName && bridge["Home Proxy"]
+          )
+            .map((bridge) =>
+              (bridge["Home Proxy"] as string)
+                .split("#")[0]
+                .toLowerCase()
             )
-              .map((bridge) =>
-                (bridge["Home Proxy"] as string).split("#")[0].toLowerCase()
-              )
-              .join('", "')}"],
-            createdTimestamp_lt: "${lastTimestamp}"
-            ${actualSearchTerm ? `, data_contains: "${actualSearchTerm}"` : ""}
-          }
-        ) {
+            .join('", "')}"],
+          ${actualSearchTerm ? `${actualSearchTerm},` : ""}
+          ${timestampFilter}
+        }
+      ) {
+        id
+        questionId
+        arbitrator
+        data
+        minBond
+        createdTimestamp
+        timeout
+        bounty
+        currentAnswer
+        currentAnswerBond
+        answerFinalizedTimestamp
+        isPendingArbitration
+        arbitrationRequestedBy
+        answers(orderBy: timestamp) {
           id
-          questionId
-          arbitrator
-          data
-          minBond
-          createdTimestamp
-          timeout
-          bounty
-          currentAnswer
-          currentAnswerBond
-          answerFinalizedTimestamp
-          isPendingArbitration
-          answers(orderBy: timestamp) {
-            id
-            answer
-            lastBond
-            timestamp
-          }
+          answer
+          lastBond
+          timestamp
         }
       }
-    `;
-  };
+    }
+  `;
 };
 
 const parseQuestionData = (data: string) => {
@@ -127,12 +138,12 @@ const transformSubgraphQuestion = (q: any): Question => {
     minimumBond: q.minBond,
     timeRemaining: calculateTimeRemaining(),
     createdTimestamp: parseInt(q.createdTimestamp),
+    arbitrationRequestedBy: q.arbitrationRequestedBy,
     answers: q.answers.map((a: any) => ({
       value: parseAnswer(a.answer),
       bond: a.lastBond,
       timestamp: parseInt(a.timestamp) * 1000,
     })),
-
     finalAnswer:
       phase === QuestionPhase.FINALIZED
         ? parseAnswer(q.currentAnswer)
@@ -140,52 +151,106 @@ const transformSubgraphQuestion = (q: any): Question => {
   };
 };
 
-export const useQuestions = ({ 
+export const useQuestions = ({
   selectedChain,
   searchTerm = "",
-}: { 
+}: {
   selectedChain: Chain;
-  searchTerm?: string;
+  searchTerm: string;
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const currentChainRef = useRef(selectedChain.id);
 
-  const fetchQuestions = useCallback(async () => {
+  const fetchAllQuestions = useCallback(async () => {
+    const abortController = new AbortController();
     try {
       setLoading(true);
-      const timestamp = Math.floor(Date.now() / 1000).toString();
+      setError(null);
+      let allQuestions: Question[] = [];
+      let lastCreatedTimestamp: number | undefined = undefined;
+      let hasMore = true;
 
-      const response = await fetch(selectedChain.subgraphUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: getQuestionsQuery(selectedChain.name)(timestamp, searchTerm),
-        }),
-      });
+      while (hasMore) {
+        if (currentChainRef.current !== selectedChain.id) {
+          abortController.abort();
+          return;
+        }
 
-      const json = await response.json();
-      if (json.errors) {
-        console.error("GraphQL Errors:", json.errors);
-        return;
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        const query = getQuestionsQuery(
+          selectedChain.name,
+          searchTerm,
+          lastCreatedTimestamp
+        );
+
+        const response = await fetch(selectedChain.subgraphUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+          signal: abortController.signal
+        });
+
+        const json = await response.json();
+        if (json.errors) {
+          console.error("GraphQL Errors:", json.errors);
+          setError("Failed to fetch questions.");
+          break;
+        }
+
+        const fetchedQuestions = json.data.questions.map(transformSubgraphQuestion);
+        if (fetchedQuestions.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        allQuestions = [...allQuestions, ...fetchedQuestions];
+        if (fetchedQuestions.length < BATCH_SIZE) {
+          hasMore = false;
+          break;
+        }
+
+        lastCreatedTimestamp = fetchedQuestions[fetchedQuestions.length - 1].createdTimestamp;
       }
 
-      const newQuestions = json.data.questions.map(transformSubgraphQuestion);
-      setQuestions(newQuestions);
-    } catch (error) {
+      if (!abortController.signal.aborted) {
+        setQuestions(allQuestions);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
       console.error("Error fetching questions:", error);
+      setError("An unexpected error occurred.");
     } finally {
-      setLoading(false);
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+      }
     }
+    return abortController;
   }, [selectedChain, searchTerm]);
 
   useEffect(() => {
+    currentChainRef.current = selectedChain.id;
     setQuestions([]);
-    setLoading(true);
-    fetchQuestions();
-  }, [selectedChain, searchTerm, fetchQuestions]);
+    let controller: AbortController | undefined;
+    fetchAllQuestions().then(c => controller = c);
 
-  return { 
-    questions, 
-    loading
+    return () => {
+      if (controller) {
+        controller.abort();
+      }
+    };
+  }, [fetchAllQuestions]);
+
+  return {
+    questions,
+    loading,
+    error,
   };
 };

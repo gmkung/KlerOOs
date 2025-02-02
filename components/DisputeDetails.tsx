@@ -27,7 +27,7 @@ export const DisputeDetails: FC<DisputeDetailsProps> = ({ dispute, loading }) =>
         return <Typography color="error">No dispute data available</Typography>;
     }
 
-    const rows = [
+    const allRows = [
         { label: 'Period', value: (dispute.period) },
         { label: 'Deadline', value: formatDistanceToNow(parseInt(dispute.periodDeadline) * 1000, { addSuffix: true }) },
         { label: 'Rounds', value: dispute.nbRounds },
@@ -36,24 +36,62 @@ export const DisputeDetails: FC<DisputeDetailsProps> = ({ dispute, loading }) =>
         { label: 'Last Period Change', value: formatDistanceToNow(parseInt(dispute.lastPeriodChangeTs) * 1000, { addSuffix: false }) },
         { label: 'Status', value: dispute.ruled ? 'Ruled' : 'Pending' },
         { label: 'Ruling', value: dispute.ruled ? getRulingText(dispute.ruling) : 'Not yet ruled' },
-    ];
+    ].filter(row => row.value != null && row.value !== '');
+
+    // Split rows into two arrays
+    const midpoint = Math.ceil(allRows.length / 2);
+    const leftRows = allRows.slice(0, midpoint);
+    const rightRows = allRows.slice(midpoint);
 
     return (
         <Box>
-            <TableContainer component={Paper} variant="outlined">
-                <Table>
-                    <TableBody>
-                        {rows.map((row) => (
-                            <TableRow key={row.label}>
-                                <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', width: '40%' }}>
-                                    {row.label}
-                                </TableCell>
-                                <TableCell>{row.value}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ flex: 1 }}>
+                    <Table size="small">
+                        <TableBody>
+                            {leftRows.map((row) => (
+                                <TableRow key={row.label}>
+                                    <TableCell
+                                        component="th"
+                                        scope="row"
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            width: '40%',
+                                            py: 1
+                                        }}
+                                    >
+                                        {row.label}
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1 }}>{row.value}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+
+                <TableContainer component={Paper} variant="outlined" sx={{ flex: 1 }}>
+                    <Table size="small">
+                        <TableBody>
+                            {rightRows.map((row) => (
+                                <TableRow key={row.label}>
+                                    <TableCell
+                                        component="th"
+                                        scope="row"
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            width: '40%',
+                                            py: 1
+                                        }}
+                                    >
+                                        {row.label}
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1 }}>{row.value}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Box>
         </Box>
     );
 };

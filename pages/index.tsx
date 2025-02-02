@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import {
     Box,
     Container,
@@ -16,6 +17,7 @@ import {
     ToggleButton,
     TextField
 } from '@mui/material';
+import { Pagination, PaginationItem } from '@mui/material';
 import { QuestionList } from '@/components/QuestionList';
 import { QuestionDetail } from '@/components/QuestionDetail';
 import { Question, QuestionPhase } from '@/types/questions';
@@ -66,34 +68,93 @@ const theme = createTheme({
     },
 });
 
+const QUESTIONS_PER_PAGE = 20;
+
 export default function Home() {
-    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-    const [selectedChain, setSelectedChain] = useState<Chain>(SUPPORTED_CHAINS[0]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const { questions, loading: questionsLoading } = useQuestions({
+    const router = useRouter();
+    const { chain, q: searchQuery, id: questionId, arbitrated } = router.query;
+
+    const selectedChain = SUPPORTED_CHAINS.find(c => c.id === chain) || SUPPORTED_CHAINS[0];
+    const currentPage = parseInt(router.query.page as string) || 1;
+    const searchTerm = (searchQuery ?? '') as string;
+    const [showArbitrated, setShowArbitrated] = useState(arbitrated === 'true');
+
+    const { questions, loading: questionsLoading, error } = useQuestions({
         selectedChain,
         searchTerm
     });
+
+    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+
+    // Update selected question when URL or questions change
+    useEffect(() => {
+        if (questionId && questions.length > 0) {
+            const question = questions.find(q => q.id === questionId);
+            setSelectedQuestion(question || null);
+        } else {
+            setSelectedQuestion(null);
+        }
+    }, [questionId, questions]);
+
     const { address, isConnected } = useWallet();
     const [statusFilter, setStatusFilter] = useState<QuestionPhase | 'ALL'>('ALL');
 
     const handleQuestionSelect = (question: Question) => {
-        setSelectedQuestion(question);
+        router.push({
+            pathname: router.pathname,
+            query: { ...router.query, id: question.id }
+        });
     };
 
     const handleBackToList = () => {
-        setSelectedQuestion(null);
+        const { id, ...query } = router.query;
+        router.push({ pathname: router.pathname, query });
     };
 
     const handleChainChange = (event: React.MouseEvent<HTMLElement>, newChain: Chain | null) => {
         if (newChain) {
-            setSelectedChain(newChain);
+            router.push({
+                pathname: router.pathname,
+                query: { ...router.query, chain: newChain.id, page: 1 }
+            });
         }
     };
 
-    const filteredQuestions = questions.filter(q =>
-        statusFilter === 'ALL' ? true : q.phase === statusFilter
-    );
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        router.push({
+            pathname: router.pathname,
+            query: { ...router.query, q: e.target.value, page: 1 }
+        });
+    };
+
+    // Apply status filter and arbitrated filter
+    const filteredQuestions = useMemo(() => {
+        return questions.filter(q => {
+            const matchesStatus = statusFilter === 'ALL' ? true : q.phase === statusFilter;
+            const matchesArbitrated = showArbitrated ? q.arbitrationRequestedBy != null : true;
+            return matchesStatus && matchesArbitrated;
+        });
+    }, [questions, statusFilter, showArbitrated]);
+
+    // Calculate total pages
+    const totalPages = useMemo(() => {
+        return Math.ceil(filteredQuestions.length / QUESTIONS_PER_PAGE) || 1;
+    }, [filteredQuestions.length]);
+
+    // Ensure currentPage is within bounds
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            router.push({
+                pathname: router.pathname,
+                query: { ...router.query, page: totalPages }
+            });
+        }
+    }, [currentPage, totalPages, router]);
+
+    // Calculate the questions to display on the current page
+    const indexOfLastQuestion = currentPage * QUESTIONS_PER_PAGE;
+    const indexOfFirstQuestion = indexOfLastQuestion - QUESTIONS_PER_PAGE;
+    const currentQuestions = filteredQuestions.slice(indexOfFirstQuestion, indexOfLastQuestion);
 
     return (
         <ThemeProvider theme={theme}>
@@ -136,8 +197,11 @@ export default function Home() {
                                         bgcolor: '#3A1070'  // Even deeper purple for hover
                                     }
                                 }}
+                                onClick={() => {
+                                    // Implement wallet connection logic here
+                                }}
                             >
-                                Connect wallet
+                                {isConnected ? `Connected: ${address}` : "Connect wallet"}
                             </Button>
                         </Box>
                     </Toolbar>
@@ -170,7 +234,7 @@ export default function Home() {
                                         <>
                                             <span style={{ color: '#000' }}>Verify </span>
                                             <span style={{ color: '#4A148C' }}>
-                                                {filteredQuestions.filter(q => q.phase !== QuestionPhase.FINALIZED).length}
+                                                {filteredQuestions.length}
                                             </span>
                                             <span style={{ color: '#000' }}> Questions</span>
                                         </>
@@ -230,7 +294,7 @@ export default function Home() {
                         variant="outlined"
                         placeholder="Search questions..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={handleSearchChange}
                         sx={{ mb: 2 }}
                         InputProps={{
                             startAdornment: <Box component="span" sx={{ color: 'text.secondary', mr: 1 }}>🔍</Box>
@@ -238,26 +302,112 @@ export default function Home() {
                     />
 
                     {!selectedQuestion && (
-                        <Tabs
-                            value={statusFilter}
-                            onChange={(_, newValue) => setStatusFilter(newValue)}
-                            sx={{ borderBottom: 1, borderColor: 'divider' }}
-                            centered
-                        >
-                            <Tab label="All Questions" value="ALL" />
-                            <Tab label="Open" value={QuestionPhase.OPEN} />
-                            <Tab label="In Arbitration" value={QuestionPhase.PENDING_ARBITRATION} />
-                            <Tab label="Finalized" value={QuestionPhase.FINALIZED} />
-                            <Tab label="Settled Too Soon" value={QuestionPhase.SETTLED_TOO_SOON} />
-                        </Tabs>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Tabs
+                                value={statusFilter}
+                                onChange={(_, newValue) => {
+                                    setStatusFilter(newValue);
+                                    router.push({
+                                        pathname: router.pathname,
+                                        query: { ...router.query, status: newValue }
+                                    });
+                                }}
+                                sx={{ borderBottom: 1, borderColor: 'divider', flex: 1 }}
+                                centered
+                            >
+                                <Tab label="All Questions" value="ALL" />
+                                <Tab label="Open" value={QuestionPhase.OPEN} />
+                                <Tab label="In Arbitration" value={QuestionPhase.PENDING_ARBITRATION} />
+                                <Tab label="Finalized" value={QuestionPhase.FINALIZED} />
+                                <Tab label="Settled Too Soon" value={QuestionPhase.SETTLED_TOO_SOON} />
+                            </Tabs>
+                            <ToggleButton
+                                value="arbitrated"
+                                selected={showArbitrated}
+                                onChange={() => {
+                                    setShowArbitrated(!showArbitrated);
+                                    router.push({
+                                        pathname: router.pathname,
+                                        query: { ...router.query, arbitrated: !showArbitrated }
+                                    });
+                                }}
+                                sx={{ ml: 2 }}
+                            >
+                                Ever Arbitrated
+                            </ToggleButton>
+                        </Box>
                     )}
 
+                    {!selectedQuestion && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="body1" sx={{ mr: 1 }}>
+                                Page
+                            </Typography>
+                            <TextField
+                                type="number"
+                                value={currentPage}
+                                onChange={(e) => {
+                                    router.push({
+                                        pathname: router.pathname,
+                                        query: { ...router.query, page: e.target.value }
+                                    });
+                                }}
+                                inputProps={{
+                                    min: 1,
+                                    max: totalPages,
+                                    style: { textAlign: 'center', width: '60px' }
+                                }}
+                                sx={{ mx: 1 }}
+                                variant="outlined"
+                            />
+                            <Typography variant="body1" sx={{ mr: 2 }}>
+                                of {totalPages}
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => {
+                                    router.push({
+                                        pathname: router.pathname,
+                                        query: { ...router.query, page: Math.max(currentPage - 1, 1) }
+                                    });
+                                }}
+                                disabled={currentPage === 1}
+                                sx={{ mr: 1 }}
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => {
+                                    router.push({
+                                        pathname: router.pathname,
+                                        query: { ...router.query, page: Math.min(currentPage + 1, totalPages) }
+                                    });
+                                }}
+                                disabled={currentPage === totalPages}
+                            >
+                                Next
+                            </Button>
+                        </Box>
+                    )}
+                    
                     {!selectedQuestion ? (
-                        <QuestionList
-                            questions={filteredQuestions}
-                            loading={questionsLoading}
-                            onQuestionSelect={handleQuestionSelect}
-                        />
+                        <>
+                            <QuestionList
+                                questions={currentQuestions}
+                                loading={questionsLoading}
+                                onQuestionSelect={handleQuestionSelect}
+                            />
+
+                            <Box sx={{ textAlign: 'center', mt: 2 }}>
+                                <Typography variant="body2">
+                                    Showing {indexOfFirstQuestion + 1}-
+                                    {Math.min(indexOfLastQuestion, filteredQuestions.length)} of {filteredQuestions.length} questions
+                                </Typography>
+                            </Box>
+                        </>
                     ) : (
                         <QuestionDetail
                             question={selectedQuestion}
@@ -266,6 +416,14 @@ export default function Home() {
                             onBack={handleBackToList}
                             selectedChain={selectedChain}
                         />
+                    )}
+
+                    {error && (
+                        <Box sx={{ mt: 4 }}>
+                            <Typography variant="body1" color="error" align="center">
+                                {error}
+                            </Typography>
+                        </Box>
                     )}
                 </Container>
 

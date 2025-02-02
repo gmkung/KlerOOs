@@ -45,4 +45,5 @@ export interface Question {
   disputeId?: number;
   appealPeriodEnd?: number;
   minimumBond: string;
+  arbitrationRequestedBy?: string;
 } 

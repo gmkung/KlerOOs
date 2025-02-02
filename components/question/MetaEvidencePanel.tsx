@@ -1,4 +1,6 @@
-import { Box, Typography, Button, Divider } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Button, Divider, Modal, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface MetaEvidencePanelProps {
     metaEvidence: {
@@ -13,10 +15,10 @@ interface MetaEvidencePanelProps {
     arbitrableContractAddress?: string;
 }
 
-export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({ 
-    metaEvidence, 
+export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
+    metaEvidence,
     disputeId,
-    arbitrableContractAddress 
+    arbitrableContractAddress
 }) => {
     if (!metaEvidence) return null;
 
@@ -33,7 +35,7 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
         }
     };
 
-    const evidenceDisplayUrl = metaEvidence.evidenceDisplayInterfaceURI && disputeId ? 
+    const evidenceDisplayUrl = metaEvidence.evidenceDisplayInterfaceURI && disputeId ?
         `https://cdn.kleros.link${metaEvidence.evidenceDisplayInterfaceURI}?` + new URLSearchParams({
             disputeID: disputeId,
             arbitrableChainID: metaEvidence.arbitrableChainID,
@@ -42,8 +44,11 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
             arbitratorContractAddress: '0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069',
             arbitratorJsonRpcUrl: 'https://mainnet.infura.io/v3/54fb3d87cd07464591ad2be29a1db32f',
             arbitratorChainID: '1'
-        }).toString()
-        : null;
+        }).toString(): undefined ;
+
+    const [open, setOpen] = useState(false);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
 
     return (
         <Box mb={3}>
@@ -57,32 +62,67 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
                 <Typography variant="body2" paragraph>
                     <strong>Question: </strong>{metaEvidence.question}
                 </Typography>
-                {evidenceDisplayUrl && (
-                    <Box sx={{ mt: 2, height: '500px' }}>
-                        <iframe 
-                            src={evidenceDisplayUrl}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                border: 'none',
-                                borderRadius: '4px'
-                            }}
-                            title="Evidence Display Interface"
-                        />
-                    </Box>
-                )}
-                {metaEvidence.fileURI && (
-                    <Button
-                        variant="text"
-                        component="a"
-                        href={`https://ipfs.kleros.io${metaEvidence.fileURI}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ mt: 1 }}
+                <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                    {evidenceDisplayUrl && (
+                        <Button variant="contained" color="primary" onClick={handleOpen}>
+                            View Evidence
+                        </Button>
+                    )}
+                    {metaEvidence.fileURI && (
+                        <Button
+                            variant="contained"
+                            component="a"
+                            color='primary'
+                            href={`https://ipfs.kleros.io${metaEvidence.fileURI}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            View Resolution Policy
+                        </Button>
+                    )}
+                </Box>
+                <Modal
+                    open={open}
+                    onClose={handleClose}
+                    aria-labelledby="evidence-modal-title"
+                    aria-describedby="evidence-modal-description"
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute' as 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '80%',
+                            height: '80%',
+                            bgcolor: 'background.paper',
+                            boxShadow: 24,
+                            p: 2,
+                            outline: 'none',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}
                     >
-                        View Resolution Policy
-                    </Button>
-                )}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <IconButton onClick={handleClose}>
+                                <CloseIcon />
+                            </IconButton>
+                        </Box>
+                        <Box sx={{ flexGrow: 1 }}>
+                            <iframe
+                                src={evidenceDisplayUrl}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    borderRadius: '4px'
+                                }}
+                                title="Evidence Display Interface"
+                            />
+                        </Box>
+                    </Box>
+                </Modal>
             </Box>
             <Divider sx={{ my: 3 }} />
         </Box>

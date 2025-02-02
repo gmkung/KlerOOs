@@ -23,7 +23,7 @@ import { QuestionHeader } from './question/QuestionHeader';
 import { AnswerHistory } from './question/AnswerHistory';
 import { MetaEvidencePanel } from './question/MetaEvidencePanel';
 import { useDisputeData } from '@/hooks/useDisputeData';
-import { useQuestions } from '@/hooks/useQuestions';
+
 
 interface QuestionDetailProps {
     question: Question;

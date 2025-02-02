@@ -1,8 +1,8 @@
 import { FC, useState, useEffect } from 'react';
-import { 
-  Paper, 
-  Typography, 
-  Box, 
+import {
+  Paper,
+  Typography,
+  Box,
   Chip,
   CircularProgress,
   Table,
@@ -11,11 +11,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Stack
+  Stack,
+  Tooltip
 } from '@mui/material';
 import { Question, QuestionPhase } from '@/types/questions';
 import { formatDistanceToNow } from 'date-fns';
 import { formatUnits } from 'ethers';
+import GavelIcon from '@mui/icons-material/Gavel';
 
 interface QuestionListProps {
   questions: Question[];
@@ -23,10 +25,10 @@ interface QuestionListProps {
   onQuestionSelect: (question: Question) => void;
 }
 
-export const QuestionList: FC<QuestionListProps> = ({ 
-  questions, 
-  loading, 
-  onQuestionSelect 
+export const QuestionList: FC<QuestionListProps> = ({
+  questions,
+  loading,
+  onQuestionSelect
 }) => {
   const getPhaseColor = (phase: QuestionPhase) => {
     switch (phase) {
@@ -54,15 +56,15 @@ export const QuestionList: FC<QuestionListProps> = ({
 
   // Use useState and useEffect for mobile detection
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 600);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -79,7 +81,7 @@ export const QuestionList: FC<QuestionListProps> = ({
             key={question.id}
             elevation={2}
             onClick={() => onQuestionSelect(question)}
-            sx={{ 
+            sx={{
               p: 2,
               cursor: 'pointer',
               '&:hover': { bgcolor: 'action.hover' }
@@ -89,8 +91,8 @@ export const QuestionList: FC<QuestionListProps> = ({
               {question.title}
             </Typography>
             <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
-              <Chip 
-                label={question.phase} 
+              <Chip
+                label={question.phase}
                 color={getPhaseColor(question.phase)}
                 size="small"
               />
@@ -106,6 +108,16 @@ export const QuestionList: FC<QuestionListProps> = ({
                 {question.answers[question.answers.length - 1]?.value || 'No answer yet'}
               </Typography>
             </Box>
+
+            {question.arbitrationRequestedBy && (
+              <Tooltip
+                title="This question has a Kleros Court case linked to its resolution"
+                arrow
+                placement="top"
+              >
+                <GavelIcon sx={{ color: 'red', ml: 1, cursor: 'pointer' }} />
+              </Tooltip>
+            )}
           </Paper>
         ))}
       </Stack>
@@ -130,26 +142,36 @@ export const QuestionList: FC<QuestionListProps> = ({
             <TableRow
               key={question.id}
               onClick={() => onQuestionSelect(question)}
-              sx={{ 
+              sx={{
                 cursor: 'pointer',
                 '&:hover': { bgcolor: 'action.hover' },
                 '&:last-child td, &:last-child th': { border: 0 }
               }}
             >
               <TableCell>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
+                <Typography
+                  variant="body2"
+                  sx={{
                     wordBreak: 'break-word',
                     whiteSpace: 'normal'
                   }}
                 >
-                  {question.title}
+                  {question.title}{question.arbitrationRequestedBy && (
+
+                    <Tooltip
+                      title="This question has a Kleros Court case linked to its resolution"
+                      arrow
+                      placement="top"
+                    >
+                      <GavelIcon sx={{ color: 'red', ml: 1, cursor: 'pointer' }} />
+                    </Tooltip>
+
+                  )}
                 </Typography>
               </TableCell>
               <TableCell align="center">
-                <Chip 
-                  label={question.phase} 
+                <Chip
+                  label={question.phase}
                   color={getPhaseColor(question.phase)}
                   size="small"
                 />
@@ -165,9 +187,9 @@ export const QuestionList: FC<QuestionListProps> = ({
                 </Typography>
               </TableCell>
               <TableCell>
-                <Typography 
+                <Typography
                   variant="body2"
-                  sx={{ 
+                  sx={{
                     wordBreak: 'break-word',
                     whiteSpace: 'normal'
                   }}
@@ -175,6 +197,7 @@ export const QuestionList: FC<QuestionListProps> = ({
                   {question.answers[question.answers.length - 1]?.value || 'No answer yet'}
                 </Typography>
               </TableCell>
+
             </TableRow>
           ))}
         </TableBody>
