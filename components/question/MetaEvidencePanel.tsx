@@ -20,6 +20,10 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
     disputeId,
     arbitrableContractAddress
 }) => {
+    const [open, setOpen] = useState(false);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+
     if (!metaEvidence) return null;
 
     const getRpcUrl = (chainId: string) => {
@@ -44,11 +48,7 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
             arbitratorContractAddress: '0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069',
             arbitratorJsonRpcUrl: 'https://mainnet.infura.io/v3/54fb3d87cd07464591ad2be29a1db32f',
             arbitratorChainID: '1'
-        }).toString(): undefined ;
-
-    const [open, setOpen] = useState(false);
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => setOpen(false);
+        }).toString() : undefined;
 
     return (
         <Box mb={3}>
@@ -65,7 +65,7 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
                 <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                     {evidenceDisplayUrl && (
                         <Button variant="contained" color="primary" onClick={handleOpen}>
-                            View Evidence
+                            View Primary Evidence
                         </Button>
                     )}
                     {metaEvidence.fileURI && (
@@ -89,7 +89,7 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
                 >
                     <Box
                         sx={{
-                            position: 'absolute' as 'absolute',
+                            position: 'absolute' as const,
                             top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',

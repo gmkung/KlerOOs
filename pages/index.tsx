@@ -14,10 +14,12 @@ import {
     Tabs,
     Tab,
     ToggleButtonGroup,
+    Switch,
+    FormControlLabel,
     ToggleButton,
     TextField
 } from '@mui/material';
-import { Pagination, PaginationItem } from '@mui/material';
+
 import { QuestionList } from '@/components/QuestionList';
 import { QuestionDetail } from '@/components/QuestionDetail';
 import { Question, QuestionPhase } from '@/types/questions';
@@ -107,6 +109,7 @@ export default function Home() {
     };
 
     const handleBackToList = () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id, ...query } = router.query;
         router.push({ pathname: router.pathname, query });
     };
@@ -321,20 +324,23 @@ export default function Home() {
                                 <Tab label="Finalized" value={QuestionPhase.FINALIZED} />
                                 <Tab label="Settled Too Soon" value={QuestionPhase.SETTLED_TOO_SOON} />
                             </Tabs>
-                            <ToggleButton
-                                value="arbitrated"
-                                selected={showArbitrated}
-                                onChange={() => {
-                                    setShowArbitrated(!showArbitrated);
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: { ...router.query, arbitrated: !showArbitrated }
-                                    });
-                                }}
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={showArbitrated}
+                                        onChange={() => {
+                                            setShowArbitrated(!showArbitrated);
+                                            router.push({
+                                                pathname: router.pathname,
+                                                query: { ...router.query, arbitrated: !showArbitrated }
+                                            });
+                                        }}
+                                        color="primary"
+                                    />
+                                }
+                                label="Show Arbitrated Only"
                                 sx={{ ml: 2 }}
-                            >
-                                Ever Arbitrated
-                            </ToggleButton>
+                            />
                         </Box>
                     )}
 
@@ -392,7 +398,7 @@ export default function Home() {
                             </Button>
                         </Box>
                     )}
-                    
+
                     {!selectedQuestion ? (
                         <>
                             <QuestionList

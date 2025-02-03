@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 export const useWallet = () => {
   const [address, setAddress] = useState<string>();
-  const [isConnected, setIsConnected] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
 
   // TODO: Add actual wallet connection logic here
   

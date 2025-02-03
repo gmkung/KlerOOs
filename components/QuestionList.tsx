@@ -163,7 +163,7 @@ export const QuestionList: FC<QuestionListProps> = ({
                       arrow
                       placement="top"
                     >
-                      <GavelIcon sx={{ color: 'red', ml: 1, cursor: 'pointer' }} />
+                      <GavelIcon sx={{ color: 'pink', ml: 1, cursor: 'pointer' }} />
                     </Tooltip>
 
                   )}
