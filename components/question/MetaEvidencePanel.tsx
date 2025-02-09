@@ -73,7 +73,7 @@ export const MetaEvidencePanel: React.FC<MetaEvidencePanelProps> = ({
                             variant="contained"
                             component="a"
                             color='primary'
-                            href={`https://ipfs.kleros.io${metaEvidence.fileURI}`}
+                            href={`https://cdn.kleros.link${metaEvidence.fileURI}`}
                             target="_blank"
                             rel="noopener noreferrer"
                         >

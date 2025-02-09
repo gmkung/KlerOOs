@@ -112,8 +112,27 @@ export const QuestionDetail: FC<QuestionDetailProps> = ({
                     <QuestionHeader
                         title={question.title}
                         description={question.description}
+                        options={question.options}
                         onBack={onBack}
                     />
+                    <Box sx={{ 
+                        mt: 1, 
+                        mb: 2, 
+                        display: 'flex', 
+                        gap: 2,
+                        flexWrap: 'wrap',
+                        color: 'text.secondary',
+                        fontSize: '0.875rem'
+                    }}>
+                        <Typography component="span">
+                            Question ID: {question.id}
+                        </Typography>
+                        {dispute && (
+                            <Typography component="span">
+                                Dispute ID: {dispute.id}
+                            </Typography>
+                        )}
+                    </Box>
                     <ActionPanel
                         question={question}
                         isConnected={isConnected}

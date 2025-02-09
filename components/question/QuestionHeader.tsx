@@ -4,10 +4,16 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 interface QuestionHeaderProps {
     title: string;
     description: string;
+    options: string[];
     onBack: () => void;
 }
 
-export const QuestionHeader: React.FC<QuestionHeaderProps> = ({ title, description, onBack }) => {
+export const QuestionHeader: React.FC<QuestionHeaderProps> = ({ 
+    title, 
+    description, 
+    options, 
+    onBack 
+}) => {
     return (
         <>
             <Box
@@ -30,9 +36,20 @@ export const QuestionHeader: React.FC<QuestionHeaderProps> = ({ title, descripti
                 </Typography>
             </Box>
 
-            <Typography variant="body1" mb={3}>
+            <Typography variant="body1" mb={2}>
                 {description}
             </Typography>
+
+            <Box mb={3}>
+                <Typography variant="body1" fontWeight="medium" mb={1}>
+                    Options:
+                </Typography>
+                {options.map((option, index) => (
+                    <Typography key={index} variant="body1" sx={{ ml: 2 }}>
+                        {index + 1}. {option}
+                    </Typography>
+                ))}
+            </Box>
         </>
     );
 }; 

@@ -7,9 +7,6 @@ const ANSWERED_TOO_SOON =
   "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe";
 const INVALID_ANSWER =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-const UNRESOLVED_ANSWER =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
-const UNANSWERED = "0";
 
 const BATCH_SIZE = 1000; // Number of questions to fetch per batch
 
@@ -18,7 +15,9 @@ const getQuestionsQuery = (
   searchTerm: string,
   lastCreatedTimestamp?: number
 ) => {
-  const actualSearchTerm = searchTerm.trim() ? `data_contains_nocase: "${searchTerm.trim()}"` : "";
+  const actualSearchTerm = searchTerm.trim()
+    ? `data_contains_nocase: "${searchTerm.trim()}"`
+    : "";
   const timestampFilter = lastCreatedTimestamp
     ? `createdTimestamp_lt: ${lastCreatedTimestamp}`
     : "";
@@ -35,9 +34,7 @@ const getQuestionsQuery = (
               bridge["Home Chain"] === chainName && bridge["Home Proxy"]
           )
             .map((bridge) =>
-              (bridge["Home Proxy"] as string)
-                .split("#")[0]
-                .toLowerCase()
+              (bridge["Home Proxy"] as string).split("#")[0].toLowerCase()
             )
             .join('", "')}"],
           ${actualSearchTerm ? `${actualSearchTerm},` : ""}
@@ -51,9 +48,12 @@ const getQuestionsQuery = (
         minBond
         createdTimestamp
         timeout
+        qType
         bounty
         currentAnswer
         currentAnswerBond
+        openingTimestamp
+        currentScheduledFinalizationTimestamp
         answerFinalizedTimestamp
         isPendingArbitration
         arbitrationRequestedBy
@@ -68,13 +68,22 @@ const getQuestionsQuery = (
   `;
 };
 
-const parseQuestionData = (data: string) => {
-  const [title, options, category, language] = data.split("␟");
+const parseQuestionData = (data: string, qType: string) => {
+  const [title, optionsStr, category] = data.split("␟");
+
+  // Only parse options for single-select questions
+  const options =
+    qType === "single-select"
+      ? optionsStr
+          .match(/(?:[^,"]|"(?:[^"])*")+/g)
+          ?.map((opt) => opt.trim().replace(/^"|"$/g, "").trim()) || []
+      : [];
+
   return {
     title,
-    description: `Options: ${options}`,
+    options,
+    description: "Please select one of the options",
     category,
-    language,
   };
 };
 
@@ -82,6 +91,7 @@ const determineQuestionPhase = (q: any): QuestionPhase => {
   const now = Math.floor(Date.now() / 1000);
   const timeout = parseInt(q.timeout);
   const finalizedTime = parseInt(q.answerFinalizedTimestamp);
+  const openingTime = parseInt(q.openingTimestamp);
 
   // Not Created
   if (timeout === 0) {
@@ -96,10 +106,13 @@ const determineQuestionPhase = (q: any): QuestionPhase => {
   // Finalized
   if (finalizedTime !== 0 && finalizedTime <= now) {
     // Check if settled too soon (with unresolved answer)
-    if (q.currentAnswer === UNRESOLVED_ANSWER) {
-      return QuestionPhase.SETTLED_TOO_SOON;
-    }
+
     return QuestionPhase.FINALIZED;
+  }
+
+  // Upcoming
+  if (openingTime > now) {
+    return QuestionPhase.UPCOMING;
   }
 
   // Open (default state if other conditions aren't met)
@@ -107,21 +120,32 @@ const determineQuestionPhase = (q: any): QuestionPhase => {
 };
 
 const transformSubgraphQuestion = (q: any): Question => {
-  const { title, description } = parseQuestionData(q.data);
+  const { title, description, options } = parseQuestionData(q.data, q.qType);
   const phase = determineQuestionPhase(q);
 
   const calculateTimeRemaining = () => {
     const now = Math.floor(Date.now() / 1000);
-    const finalizationTime = parseInt(q.answerFinalizedTimestamp);
+    const finalizationTime = q.currentScheduledFinalizationTimestamp
+      ? parseInt(q.currentScheduledFinalizationTimestamp)
+      : 0;
     if (finalizationTime && finalizationTime > now) {
       return (finalizationTime - now) * 1000;
     }
     return 0;
   };
 
+  const calculateTimeToOpen = () => {
+    const now = Math.floor(Date.now() / 1000);
+    const openingTime = parseInt(q.openingTimestamp);
+    if (openingTime && openingTime > now) {
+      return (openingTime - now) * 1000;
+    }
+    return 0;
+  };
+
   const parseAnswer = (answerHex: string) => {
     // Convert answer hex to actual answer
-    if (answerHex === UNRESOLVED_ANSWER) return "Unanswered";
+
     if (answerHex === ANSWERED_TOO_SOON) return "Answered Too Soon";
     if (answerHex === INVALID_ANSWER) return "Invalid Answer";
 
@@ -132,13 +156,20 @@ const transformSubgraphQuestion = (q: any): Question => {
     id: q.questionId,
     title,
     description,
+    options,
     arbitrator: q.arbitrator,
     phase,
+    qType: q.qType,
+    currentAnswer: q.currentAnswer,
     currentBond: q.currentAnswerBond || q.bounty,
     minimumBond: q.minBond,
     timeRemaining: calculateTimeRemaining(),
+    timeToOpen: calculateTimeToOpen(),
     createdTimestamp: parseInt(q.createdTimestamp),
+    openingTimestamp: parseInt(q.openingTimestamp),
     arbitrationRequestedBy: q.arbitrationRequestedBy,
+    currentScheduledFinalizationTimestamp:
+      q.currentScheduledFinalizationTimestamp,
     answers: q.answers.map((a: any) => ({
       value: parseAnswer(a.answer),
       bond: a.lastBond,
@@ -192,7 +223,7 @@ export const useQuestions = ({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
-          signal: abortController.signal
+          signal: abortController.signal,
         });
 
         const json = await response.json();
@@ -202,7 +233,9 @@ export const useQuestions = ({
           break;
         }
 
-        const fetchedQuestions = json.data.questions.map(transformSubgraphQuestion);
+        const fetchedQuestions = json.data.questions.map(
+          transformSubgraphQuestion
+        );
         if (fetchedQuestions.length === 0) {
           hasMore = false;
           break;
@@ -214,15 +247,16 @@ export const useQuestions = ({
           break;
         }
 
-        lastCreatedTimestamp = fetchedQuestions[fetchedQuestions.length - 1].createdTimestamp;
+        lastCreatedTimestamp =
+          fetchedQuestions[fetchedQuestions.length - 1].createdTimestamp;
       }
 
       if (!abortController.signal.aborted) {
         setQuestions(allQuestions);
       }
     } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Fetch aborted');
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("Fetch aborted");
         return;
       }
       console.error("Error fetching questions:", error);
@@ -239,7 +273,7 @@ export const useQuestions = ({
     currentChainRef.current = selectedChain.id;
     setQuestions([]);
     let controller: AbortController | undefined;
-    fetchAllQuestions().then(c => controller = c);
+    fetchAllQuestions().then((c) => (controller = c));
 
     return () => {
       if (controller) {

@@ -24,7 +24,16 @@ export const AnswerHistory: React.FC<AnswerHistoryProps> = ({ answers }) => {
                             Answer: {answer.value}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            Bond: {formatXDaiFromWei(answer.bond)} xDAI • By: {answer.provider}
+                            Bond: {formatXDaiFromWei(answer.bond)} xDAI • By: {answer.provider || (
+                                <Typography
+                                    component="span"
+                                    variant="caption"
+                                    color="text.disabled"
+                                    sx={{ fontStyle: 'italic' }}
+                                >
+                                    Unavailable
+                                </Typography>
+                            )}
                         </Typography>
                     </Box>
                 ))}
