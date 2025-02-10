@@ -27,11 +27,9 @@ export const useDisputeData = (question: Question, selectedChain: Chain) => {
             b["Home Proxy"]?.toLowerCase() ===
               question.arbitrator?.toLowerCase()
         );
-        console.log(selectedChain.name);
-        console.log(question);
-        console.log(bridge);
+
         if (!bridge || !bridge["Foreign Proxy"]) {
-          console.warn("No matching bridge found or no Foreign Proxy");
+          console.warn("No matching bridge found or no Foreign Proxy", bridge);
           return;
         }
 

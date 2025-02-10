@@ -53,6 +53,12 @@ const getQuestionsQuery = (
         bounty
         currentAnswer
         currentAnswerBond
+        template {
+          id
+          user
+          templateId
+          questionText
+        }
         openingTimestamp
         currentScheduledFinalizationTimestamp
         answerFinalizedTimestamp
@@ -69,23 +75,85 @@ const getQuestionsQuery = (
   `;
 };
 
-const parseQuestionData = (data: string, qType: string) => {
-  const [title, optionsStr, category] = data.split("␟");
+const parseQuestionData = (
+  data: string,
+  qType: string,
+  template?: { questionText: string }
+) => {
+  try {
+    // If there's a template, try to parse using the template format
+    if (template?.questionText) {
+      const dataValues = data.split("␟");
+      let valueIndex = 0;
+      console.log("Template text:", template.questionText);
+      const unescapedTemplate = template.questionText;
 
-  // Only parse options for single-select questions
-  const options =
-    qType === "single-select"
-      ? optionsStr
-          .match(/(?:[^,"]|"(?:[^"])*")+/g)
-          ?.map((opt) => opt.trim().replace(/^"|"$/g, "").trim()) || []
-      : [];
+      // Complete the template by replacing each %s with its corresponding value
+      const completedTemplate = unescapedTemplate.replace(/%s/g, () => {
+        const value = dataValues[valueIndex];
+        valueIndex++;
+        return value || "";
+      });
 
-  return {
-    title,
-    options,
-    description: "Please select one of the options",
-    category,
-  };
+      console.log("CompletedTemplate text:", completedTemplate);
+      try {
+        const questionData = JSON.parse(completedTemplate);
+        console.log("Parsed QuestionData:", questionData);
+
+        // Extract options from outcomes if present
+        const options =
+          questionData.type === "single-select" && questionData.outcomes
+            ? Array.isArray(questionData.outcomes)
+              ? questionData.outcomes
+              : questionData.outcomes
+                  .split(",")
+                  .map((opt: string) => opt.trim())
+            : questionData.type === "bool"
+              ? ["Yes", "No"]
+              : [];
+
+        return {
+          title: questionData.title,
+          options,
+          description: "Please select one of the options",
+          category: questionData.category,
+        };
+      } catch (parseError) {
+        console.error("Failed to parse template:", {
+          data,
+          templateText: template.questionText,
+          completedTemplate,
+          error: parseError,
+        });
+        return null;
+      }
+    }
+
+    // Fallback to original direct parsing if no template
+    const [title, optionsStr, category] = data.split("␟");
+    const options =
+      qType === "single-select"
+        ? optionsStr
+            .match(/(?:[^,"]|"(?:[^"])*")+/g)
+            ?.map((opt) => opt.trim().replace(/^"|"$/g, "").trim()) || []
+        : [];
+
+    return {
+      title,
+      options,
+      description: "Please select one of the options",
+      category,
+    };
+  } catch (error) {
+    console.error("Error parsing question data:", error);
+    // Return a default structure if parsing fails
+    return {
+      title: data,
+      options: [],
+      description: "Please select one of the options",
+      category: "Unknown",
+    };
+  }
 };
 
 const determineQuestionPhase = (q: any): QuestionPhase => {
@@ -121,7 +189,12 @@ const determineQuestionPhase = (q: any): QuestionPhase => {
 };
 
 const transformSubgraphQuestion = (q: any): Question => {
-  const { title, description, options } = parseQuestionData(q.data, q.qType);
+  const parsed = parseQuestionData(
+    q.data,
+    q.qTyp,
+    q.template
+  ) || { title: q.data, description: '', options: [], category: 'Unknown' };
+  const { title, description, options } = parsed;
   const phase = determineQuestionPhase(q);
 
   const calculateTimeRemaining = () => {

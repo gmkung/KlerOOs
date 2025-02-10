@@ -80,7 +80,7 @@ export const QuestionList: FC<QuestionListProps> = ({
   const getTimelineTooltip = (question: Question) => {
     const createdTime = formatExactTime(question.createdTimestamp);
     const openingTime = formatExactTime(question.openingTimestamp);
-    const closingTime = question.currentScheduledFinalizationTimestamp 
+    const closingTime = question.currentScheduledFinalizationTimestamp
       ? formatExactTime(parseInt(question.currentScheduledFinalizationTimestamp))
       : 'Not set';
 
@@ -245,7 +245,7 @@ export const QuestionList: FC<QuestionListProps> = ({
                       whiteSpace: 'normal'
                     }}
                   >
-                    {question.qType === 'single-select' && question.currentAnswer
+                    {['single-select', 'bool'].includes(question.qType) && question.currentAnswer
                       ? question.options[decodeHexAnswer(question.currentAnswer)]
                       : question.currentAnswer || question.answers[question.answers.length - 1]?.value || 'No answer yet'}
                   </Typography>
