@@ -46,6 +46,7 @@ export interface Question {
   timeToOpen: number;
   timeRemaining: number;
   answers: Answer[];
+  contract: string;
   createdTimestamp: number;
   currentScheduledFinalizationTimestamp?: string;
   finalAnswer?: string;

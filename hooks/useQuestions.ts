@@ -46,6 +46,7 @@ const getQuestionsQuery = (
         arbitrator
         data
         minBond
+        contract
         createdTimestamp
         timeout
         qType
@@ -158,6 +159,7 @@ const transformSubgraphQuestion = (q: any): Question => {
     description,
     options,
     arbitrator: q.arbitrator,
+    contract: q.contract,
     phase,
     qType: q.qType,
     currentAnswer: q.currentAnswer,
