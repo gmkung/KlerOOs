@@ -138,7 +138,11 @@ export const QuestionDetail: FC<QuestionDetailProps> = ({
                         isConnected={isConnected}
                     />
                     <Divider sx={{ my: 3 }} />
-                    <AnswerHistory answers={question.answers} />
+                    <AnswerHistory 
+                        responses={question.responses} 
+                        qType={question.qType}
+                        options={question.options}
+                    />
                 </Box>
 
                 {dispute && (

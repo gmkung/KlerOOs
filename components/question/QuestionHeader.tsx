@@ -26,14 +26,19 @@ export const QuestionHeader: React.FC<QuestionHeaderProps> = ({
                 <IconButton onClick={onBack}>
                     <ArrowBackIcon />
                 </IconButton>
-                <Typography
-                    variant="h5"
-                    sx={{
-                        fontSize: { xs: '1.2rem', md: '1.5rem' }
-                    }}
-                >
-                    {title}
-                </Typography>
+                <Box>
+                    <Typography
+                        variant="h3"
+                        sx={{
+                            fontSize: { xs: '1.2rem', md: '1.5rem' }
+                        }}
+                    >
+                        Question
+                    </Typography>
+                    <Typography variant="body1">
+                        {title}
+                    </Typography>
+                </Box>
             </Box>
 
             <Typography variant="body1" mb={2}>

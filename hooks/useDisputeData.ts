@@ -3,6 +3,7 @@ import { Question, Evidence } from "@/types/questions";
 import { Chain } from "@/constants/chains";
 import { BRIDGES } from "@/constants/bridges";
 import { getDisputeId } from "@/utils/getDisputeId";
+import { getDisputeIdEth } from "@/utils/getDisputeIdEth";
 import { Dispute } from "@/types/disputes";
 
 export const useDisputeData = (question: Question, selectedChain: Chain) => {
@@ -28,17 +29,27 @@ export const useDisputeData = (question: Question, selectedChain: Chain) => {
               question.arbitrator?.toLowerCase()
         );
 
-        if (!bridge || !bridge["Foreign Proxy"]) {
+        let id;
+        if (!bridge?.["Foreign Proxy"] && selectedChain.name === "Ethereum") {
+          // If no Foreign Proxy and chain is Ethereum, use the Home Proxy directly
+          console.log("Getting dispute ID from Ethereum too")
+          id = await getDisputeIdEth(
+            question.arbitrator, // Use the arbitrator address (Home Proxy)
+            question.id,
+            "https://rpc.ankr.com/eth"
+          );
+        } else if (bridge?.["Foreign Proxy"]) {
+          // Otherwise use the bridge Foreign Proxy
+          id = await getDisputeId(
+            bridge["Foreign Proxy"],
+            question.id,
+            "https://rpc.ankr.com/eth"
+          );
+        } else {
           console.warn("No matching bridge found or no Foreign Proxy", bridge);
           return;
         }
 
-        // Get dispute ID from question data
-        const id = await getDisputeId(
-          bridge["Foreign Proxy"],
-          question.id,
-          "https://rpc.ankr.com/eth"
-        );
         console.log("Dispute ID: ", id);
         setDisputeId(id);
 

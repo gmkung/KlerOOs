@@ -97,6 +97,13 @@ export const DisputeDetails: FC<DisputeDetailsProps> = ({ dispute, loading }) =>
 };
 
 function getRulingText(ruling: string): string {
-    const rulings = ['Refuse to Arbitrate', 'Calin Georgescu', 'Elena Lasconi'];
-    return rulings[parseInt(ruling)] || 'Unknown';
-} 
+    // Check for "Answered too soon" special case
+    if (ruling === '115792089237316195423570985008687907853269984665640564039457584007913129639935') {
+        return 'Answered too soon';
+    }
+    if (ruling === '0') {
+        return 'Refuse to Arbitrate';
+    }
+
+    return ruling;
+}

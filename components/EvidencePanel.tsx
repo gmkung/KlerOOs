@@ -49,8 +49,9 @@ export const EvidencePanel: FC<EvidencePanelProps> = ({ evidences, canSubmit, on
             try {
                 const response = await fetch(`https://cdn.kleros.link${item.URI}`);
                 if (!response.ok) throw new Error('Failed to fetch');
+                console.log(response)
                 const contents = await response.json();
-                
+
                 setEvidenceWithContents(current => {
                     const updated = [...current];
                     updated[index] = {

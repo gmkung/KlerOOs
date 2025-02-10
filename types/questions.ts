@@ -54,4 +54,10 @@ export interface Question {
   appealPeriodEnd?: number;
   minimumBond: string;
   arbitrationRequestedBy?: string;
+  responses: {
+    value: string;
+    timestamp: number;
+    bond: string;
+    user: string;
+  }[];
 } 

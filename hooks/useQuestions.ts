@@ -64,6 +64,13 @@ const getQuestionsQuery = (
         answerFinalizedTimestamp
         isPendingArbitration
         arbitrationRequestedBy
+        responses (orderBy:timestamp) {
+          id
+          answer
+          bond
+          user
+          timestamp
+        }
         answers(orderBy: timestamp) {
           id
           answer
@@ -85,7 +92,7 @@ const parseQuestionData = (
     if (template?.questionText) {
       const dataValues = data.split("␟");
       let valueIndex = 0;
-      console.log("Template text:", template.questionText);
+
       const unescapedTemplate = template.questionText;
 
       // Complete the template by replacing each %s with its corresponding value
@@ -95,10 +102,8 @@ const parseQuestionData = (
         return value || "";
       });
 
-      console.log("CompletedTemplate text:", completedTemplate);
       try {
         const questionData = JSON.parse(completedTemplate);
-        console.log("Parsed QuestionData:", questionData);
 
         // Extract options from outcomes if present
         const options =
@@ -109,7 +114,7 @@ const parseQuestionData = (
                   .split(",")
                   .map((opt: string) => opt.trim())
             : questionData.type === "bool"
-              ? ["Yes", "No"]
+              ? ["No", "Yes"]
               : [];
 
         return {
@@ -189,11 +194,12 @@ const determineQuestionPhase = (q: any): QuestionPhase => {
 };
 
 const transformSubgraphQuestion = (q: any): Question => {
-  const parsed = parseQuestionData(
-    q.data,
-    q.qTyp,
-    q.template
-  ) || { title: q.data, description: '', options: [], category: 'Unknown' };
+  const parsed = parseQuestionData(q.data, q.qTyp, q.template) || {
+    title: q.data,
+    description: "",
+    options: [],
+    category: "Unknown",
+  };
   const { title, description, options } = parsed;
   const phase = determineQuestionPhase(q);
 
@@ -249,6 +255,12 @@ const transformSubgraphQuestion = (q: any): Question => {
       value: parseAnswer(a.answer),
       bond: a.lastBond,
       timestamp: parseInt(a.timestamp) * 1000,
+    })),
+    responses: q.responses.map((r: any) => ({
+      value: parseAnswer(r.answer),
+      timestamp: parseInt(r.timestamp) * 1000,
+      bond: r.bond,
+      user: r.user,
     })),
     finalAnswer:
       phase === QuestionPhase.FINALIZED

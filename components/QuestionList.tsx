@@ -135,16 +135,6 @@ export const QuestionList: FC<QuestionListProps> = ({
                   : question.currentAnswer || question.answers[question.answers.length - 1]?.value || 'No answer yet'}
               </Typography>
             </Box>
-
-            {question.arbitrationRequestedBy && (
-              <Tooltip
-                title="This question has a Kleros Court case linked to its resolution"
-                arrow
-                placement="top"
-              >
-                <GavelIcon sx={{ color: 'red', ml: 1, cursor: 'pointer' }} />
-              </Tooltip>
-            )}
           </Paper>
         ))}
       </Stack>
@@ -195,25 +185,37 @@ export const QuestionList: FC<QuestionListProps> = ({
                 }}
               >
                 <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      wordBreak: 'break-word',
-                      whiteSpace: 'normal'
-                    }}
-                  >
-                    {question.title}{question.arbitrationRequestedBy && (
-
-                      <Tooltip
-                        title="This question has a Kleros Court case linked to its resolution"
-                        arrow
-                        placement="top"
+                  {question.arbitrationRequestedBy ? (
+                    <Tooltip
+                      title="Arbitration has been requested"
+                      arrow
+                      placement="top"
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          wordBreak: 'break-word',
+                          whiteSpace: 'normal',
+                          outline: '2px solid rgba(156, 39, 176, 0.3)',
+                          outlineOffset: '2px',
+                          padding: '4px',
+                          borderRadius: '4px'
+                        }}
                       >
-                        <GavelIcon sx={{ color: 'pink', ml: 1, cursor: 'pointer' }} />
-                      </Tooltip>
-
-                    )}
-                  </Typography>
+                        {question.title}
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        wordBreak: 'break-word',
+                        whiteSpace: 'normal'
+                      }}
+                    >
+                      {question.title}
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell align="center">
                   <Chip
@@ -250,7 +252,6 @@ export const QuestionList: FC<QuestionListProps> = ({
                       : question.currentAnswer || question.answers[question.answers.length - 1]?.value || 'No answer yet'}
                   </Typography>
                 </TableCell>
-
               </TableRow>
             </Tooltip>
           ))}

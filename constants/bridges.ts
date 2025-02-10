@@ -347,6 +347,21 @@ export const BRIDGES: Bridge[] = [
     Bot: false,
     Dispute: "3 jurors, general court",
   },
+  {
+    Name: "Manually added Gnosis -> Ethereum proxy",
+    Comment: null,
+    "Home Chain": "Gnosis",
+    "Home Proxy": "0x88fb25d399310c07d35cb9091b8346d8b1893aa5",
+    "Foreign Chain": "Ethereum",
+    "Foreign Proxy": "0x32bcDC9776692679CfBBf8350BAd67Da13FaaA3F",
+    Testnet: "No",
+    Oracle: "",
+    Bond: "xDai",
+    Appeals: false,
+    Governor: true,
+    Bot: false,
+    Dispute: "",
+  },
 ] as const;
 
 // Helper functions
