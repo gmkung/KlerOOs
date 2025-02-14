@@ -17,7 +17,6 @@ import {
 import { Question, QuestionPhase } from '@/types/questions';
 import { formatDistanceToNow, format } from 'date-fns';
 import { formatUnits } from 'ethers';
-import GavelIcon from '@mui/icons-material/Gavel';
 
 interface QuestionListProps {
   questions: Question[];

@@ -1,5 +1,4 @@
 import { Box, Typography, Stack } from '@mui/material';
-import { Answer } from '@/types/questions';
 import { formatXDaiFromWei } from '@/utils/formatting';
 import { formatDistanceToNow } from 'date-fns';
 import { FC } from 'react';
@@ -49,8 +48,8 @@ export const AnswerHistory: FC<AnswerHistoryProps> = ({
                             Answer: {formatAnswer(response.value)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            Bond: {formatXDaiFromWei(response.bond)} xDAI • 
-                            {formatDistanceToNow(response.timestamp, { addSuffix: true })} • 
+                            Bond: {formatXDaiFromWei(response.bond)} xDAI •
+                            {formatDistanceToNow(response.timestamp, { addSuffix: true })} •
                             By: {response.user || (
                                 <Typography
                                     component="span"

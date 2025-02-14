@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 
-export async function getDisputeIdEth(
+export async function getDisputeIdNative(
   homeProxy: string,
   questionId: string,
   rpcUrl: string

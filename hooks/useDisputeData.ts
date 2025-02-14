@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Question, Evidence } from "@/types/questions";
-import { Chain } from "@/constants/chains";
+import { Chain, SUPPORTED_CHAINS } from "@/constants/chains";
 import { BRIDGES } from "@/constants/bridges";
 import { getDisputeId } from "@/utils/getDisputeId";
-import { getDisputeIdEth } from "@/utils/getDisputeIdEth";
+import { getDisputeIdNative } from "@/utils/getDisputeIdNative";
+
 import { Dispute } from "@/types/disputes";
 
 export const useDisputeData = (question: Question, selectedChain: Chain) => {
@@ -18,7 +19,7 @@ export const useDisputeData = (question: Question, selectedChain: Chain) => {
       if (!question || !selectedChain) {
         return;
       }
-
+      console.log("selectedChain",selectedChain)
       setDisputeLoading(true);
       try {
         // Find the bridge that matches both the arbitrator (Home Proxy) address and the Home Chain
@@ -28,23 +29,31 @@ export const useDisputeData = (question: Question, selectedChain: Chain) => {
             b["Home Proxy"]?.toLowerCase() ===
               question.arbitrator?.toLowerCase()
         );
-
+        console.log("Found Bridge: ", bridge);
         let id;
-        if (!bridge?.["Foreign Proxy"] && selectedChain.name === "Ethereum") {
-          // If no Foreign Proxy and chain is Ethereum, use the Home Proxy directly
-          console.log("Getting dispute ID from Ethereum too")
-          id = await getDisputeIdEth(
-            question.arbitrator, // Use the arbitrator address (Home Proxy)
+
+        if (!bridge?.["Foreign Proxy"]) {
+          const rpcUrl = selectedChain.public_rpc_url;
+          if (!rpcUrl) {
+            console.warn("No RPC URL found for chain:", selectedChain.name);
+            return;
+          }
+          id = await getDisputeIdNative(
+            question.arbitrator,
             question.id,
-            "https://rpc.ankr.com/eth"
+            rpcUrl
           );
         } else if (bridge?.["Foreign Proxy"]) {
-          // Otherwise use the bridge Foreign Proxy
-          id = await getDisputeId(
-            bridge["Foreign Proxy"],
-            question.id,
-            "https://rpc.ankr.com/eth"
+          // For foreign chain, find the matching chain from SUPPORTED_CHAINS
+          const foreignChain = SUPPORTED_CHAINS.find(
+            chain => chain.name === bridge["Foreign Chain"]
           );
+          const rpcUrl = foreignChain?.public_rpc_url;
+          if (!rpcUrl) {
+            console.warn("No RPC URL found for Foreign Chain:", bridge["Foreign Chain"]);
+            return;
+          }
+          id = await getDisputeId(bridge["Foreign Proxy"], question.id, rpcUrl);
         } else {
           console.warn("No matching bridge found or no Foreign Proxy", bridge);
           return;
@@ -90,16 +99,34 @@ export const useDisputeData = (question: Question, selectedChain: Chain) => {
               }
             }`;
 
-            const response = await fetch(
-              "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/Edg8H3AioJtYaih5PtfJhRNaERS6bU1XMn9dfPjEr5ao",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ query: disputeQuery }),
-              }
-            );
+            // Determine which chain to use for queries
+            const queryChain = bridge?.["Foreign Chain"] && bridge["Foreign Chain"] !== "-" 
+              ? bridge["Foreign Chain"] 
+              : selectedChain.name;
+            console.log("queryChain: ", queryChain);
+            // Get chain-specific subgraph URL
+            let subgraphUrl;
+            switch (queryChain) {
+              case "Gnosis":
+                subgraphUrl =
+                  "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/FxhLntVBELrZ4t1c2HNNvLWEYfBjpB8iKZiEymuFSPSr";
+                break;
+              case "Ethereum":
+                subgraphUrl =
+                  "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/Edg8H3AioJtYaih5PtfJhRNaERS6bU1XMn9dfPjEr5ao";
+                break;
+              default:
+                console.warn("Unsupported chain for subgraph:", queryChain);
+                return;
+            }
+
+            const response = await fetch(subgraphUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ query: disputeQuery }),
+            });
 
             const { data } = await response.json();
 
@@ -107,8 +134,25 @@ export const useDisputeData = (question: Question, selectedChain: Chain) => {
               setDispute(data.dispute);
               setEvidence(data.dispute.evidenceGroup?.evidence || []);
 
+              // Get chain-specific chainId
+              let chainId;
+              switch (queryChain) {
+                case "Gnosis":
+                  chainId = "100";
+                  break;
+                case "Ethereum":
+                  chainId = "1";
+                  break;
+                default:
+                  console.warn(
+                    "Unsupported chain for meta evidence:",
+                    queryChain
+                  );
+                  return;
+              }
+
               const metaEvidenceResponse = await fetch(
-                `https://kleros-api.netlify.app/.netlify/functions/get-dispute-metaevidence?chainId=1&disputeId=${id}`
+                `https://kleros-api.netlify.app/.netlify/functions/get-dispute-metaevidence?chainId=${chainId}&disputeId=${id}`
               );
               const { metaEvidenceUri } = await metaEvidenceResponse.json();
 
