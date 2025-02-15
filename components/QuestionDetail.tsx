@@ -108,17 +108,23 @@ export const QuestionDetail: FC<QuestionDetailProps> = ({
                     gap: { xs: 2, md: 3 }
                 }}
             >
-                <Box flex={dispute ? 0.4 : 1}>
+                <Box
+                    sx={{
+                        width: dispute ? '40%' : '100%',  // 40% when dispute exists, full width otherwise
+                        minWidth: dispute ? '40%' : 'auto',
+                        flexShrink: 0,
+                    }}
+                >
                     <QuestionHeader
                         title={question.title}
                         description={question.description}
                         options={question.options}
                         onBack={onBack}
                     />
-                    <Box sx={{ 
-                        mt: 1, 
-                        mb: 2, 
-                        display: 'flex', 
+                    <Box sx={{
+                        mt: 1,
+                        mb: 2,
+                        display: 'flex',
                         gap: 2,
                         flexWrap: 'wrap',
                         color: 'text.secondary',
@@ -138,8 +144,8 @@ export const QuestionDetail: FC<QuestionDetailProps> = ({
                         isConnected={isConnected}
                     />
                     <Divider sx={{ my: 3 }} />
-                    <AnswerHistory 
-                        responses={question.responses} 
+                    <AnswerHistory
+                        responses={question.responses}
                         qType={question.qType}
                         options={question.options}
                     />
@@ -147,11 +153,9 @@ export const QuestionDetail: FC<QuestionDetailProps> = ({
 
                 {dispute && (
                     <Box sx={{
-                        width: {
-                            xs: '100%',
-                            md: '550px'
-                        },
-                        flex: 0.6,
+                        width: '60%',  // Fixed 4:6 ratio
+                        minWidth: '60%',
+                        flexShrink: 0,
                         bgcolor: 'background.paper',
                         borderRadius: 1,
                         boxShadow: 1,

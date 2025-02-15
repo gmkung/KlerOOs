@@ -32,13 +32,15 @@ export const QuestionList: FC<QuestionListProps> = ({
   const getPhaseColor = (phase: QuestionPhase) => {
     switch (phase) {
       case QuestionPhase.OPEN:
-        return 'primary';
+        return 'secondary';
       case QuestionPhase.PENDING_ARBITRATION:
         return 'warning';
       case QuestionPhase.FINALIZED:
-        return 'success';
+        return 'default';
       case QuestionPhase.SETTLED_TOO_SOON:
         return 'error';
+      case QuestionPhase.UPCOMING:
+        return 'info';
       default:
         return 'default';
     }
@@ -118,6 +120,7 @@ export const QuestionList: FC<QuestionListProps> = ({
               <Chip
                 label={question.phase}
                 color={getPhaseColor(question.phase)}
+                variant="filled"
                 size="small"
               />
               <Typography variant="caption">
@@ -220,6 +223,7 @@ export const QuestionList: FC<QuestionListProps> = ({
                   <Chip
                     label={question.phase}
                     color={getPhaseColor(question.phase)}
+                    variant="filled"
                     size="small"
                   />
                 </TableCell>
