@@ -11,18 +11,14 @@ import {
     createTheme,
     CssBaseline,
     Stack,
-    Tabs,
-    Tab,
     ToggleButtonGroup,
-    Switch,
-    FormControlLabel,
     ToggleButton,
     TextField
 } from '@mui/material';
 
 import { QuestionList } from '@/components/QuestionList';
 import { QuestionDetail } from '@/components/QuestionDetail';
-import { Question, QuestionPhase } from '@/types/questions';
+import { Question } from '@/types/questions';
 import { useQuestions } from '@/hooks/useQuestions';
 import { useWallet } from '@/hooks/useWallet';
 import LooksOneIcon from '@mui/icons-material/LooksOne';
@@ -100,12 +96,11 @@ const LoadingDots = () => {
 
 export default function Home() {
     const router = useRouter();
-    const { chain, q: searchQuery, id: questionId, arbitrated } = router.query;
+    const { chain, q: searchQuery, id: questionId } = router.query;
 
     const selectedChain = SUPPORTED_CHAINS.find(c => c.id === chain) || SUPPORTED_CHAINS[0];
     const currentPage = parseInt(router.query.page as string) || 1;
     const searchTerm = (searchQuery ?? '') as string;
-    const [showArbitrated, setShowArbitrated] = useState(arbitrated === 'true');
 
     const { questions, loading: questionsLoading, error } = useQuestions({
         selectedChain,
@@ -125,7 +120,8 @@ export default function Home() {
     }, [questionId, questions]);
 
     const { address, isConnected } = useWallet();
-    const [statusFilter, setStatusFilter] = useState<QuestionPhase | 'ALL'>('ALL');
+
+    const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
 
     const handleQuestionSelect = (question: Question) => {
         router.push({
@@ -158,12 +154,33 @@ export default function Home() {
 
     // Apply status filter and arbitrated filter
     const filteredQuestions = useMemo(() => {
-        return questions.filter(q => {
-            const matchesStatus = statusFilter === 'ALL' ? true : q.phase === statusFilter;
-            const matchesArbitrated = showArbitrated ? q.arbitrationRequestedBy != null : true;
-            return matchesStatus && matchesArbitrated;
+        return questions.filter(question => {
+            // Apply dynamic filters
+            return Object.entries(activeFilters).every(([field, value]) => {
+                if (!value && value !== 0) return true;
+                const questionValue = question[field as keyof Question];
+
+                // Handle arbitratedBy as a simple toggle for questions with arbitrationRequestedBy
+                if (field === 'arbitratedBy') {
+                    return value === true ? question.arbitrationRequestedBy !== null && question.arbitrationRequestedBy !== undefined : true;
+                }
+
+                // Fuzzy text search for title and description
+                if (field === 'title' || field === 'description') {
+                    return String(questionValue).toLowerCase().includes(value.toLowerCase());
+                }
+
+                // Default handling for other fields
+                if (typeof value === 'string') {
+                    return String(questionValue).toLowerCase() === value.toLowerCase();
+                }
+                if (typeof value === 'number') {
+                    return Number(questionValue) === value;
+                }
+                return questionValue === value;
+            });
         });
-    }, [questions, statusFilter, showArbitrated]);
+    }, [questions, activeFilters]);
 
     // Calculate total pages
     const totalPages = useMemo(() => {
@@ -344,46 +361,6 @@ export default function Home() {
                     />
 
                     {!selectedQuestion && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <Tabs
-                                value={statusFilter}
-                                onChange={(_, newValue) => {
-                                    setStatusFilter(newValue);
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: { ...router.query, status: newValue }
-                                    });
-                                }}
-                                sx={{ borderBottom: 1, borderColor: 'divider', flex: 1 }}
-                                centered
-                            >
-                                <Tab label="All Questions" value="ALL" />
-                                <Tab label="Open" value={QuestionPhase.OPEN} />
-                                <Tab label="In Arbitration" value={QuestionPhase.PENDING_ARBITRATION} />
-                                <Tab label="Finalized" value={QuestionPhase.FINALIZED} />
-                                <Tab label="Settled Too Soon" value={QuestionPhase.SETTLED_TOO_SOON} />
-                            </Tabs>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={showArbitrated}
-                                        onChange={() => {
-                                            setShowArbitrated(!showArbitrated);
-                                            router.push({
-                                                pathname: router.pathname,
-                                                query: { ...router.query, arbitrated: !showArbitrated }
-                                            });
-                                        }}
-                                        color="primary"
-                                    />
-                                }
-                                label="Show Arbitrated Only"
-                                sx={{ ml: 2 }}
-                            />
-                        </Box>
-                    )}
-
-                    {!selectedQuestion && (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
                             <Typography variant="body1" sx={{ mr: 1 }}>
                                 Page
@@ -444,6 +421,7 @@ export default function Home() {
                                 questions={currentQuestions}
                                 loading={questions.length == 0}
                                 onQuestionSelect={handleQuestionSelect}
+                                onFilterChange={setActiveFilters}
                             />
 
                             <Box sx={{ textAlign: 'center', mt: 2 }}>
