@@ -281,22 +281,22 @@ export const useQuestions = ({
   const [error, setError] = useState<string | null>(null);
   const currentChainRef = useRef(selectedChain.id);
 
-  const fetchAllQuestions = useCallback(async () => {
+  const fetchAllBatches = useCallback(async () => {
     const abortController = new AbortController();
+    let hasMore = true;
+    let currentQuestions: Question[] = [];  // Local array to track questions
+    
     try {
-      setLoading(true);
       setError(null);
-      let allQuestions: Question[] = [];
-      let lastCreatedTimestamp: number | undefined = undefined;
-      let hasMore = true;
+      setLoading(true);
 
-      while (hasMore) {
+      while (hasMore && !abortController.signal.aborted) {
+        const lastCreatedTimestamp = currentQuestions.length > 0 
+          ? currentQuestions[currentQuestions.length - 1].createdTimestamp 
+          : undefined;
+
         if (currentChainRef.current !== selectedChain.id) {
           abortController.abort();
-          return;
-        }
-
-        if (abortController.signal.aborted) {
           return;
         }
 
@@ -317,29 +317,19 @@ export const useQuestions = ({
         if (json.errors) {
           console.error("GraphQL Errors:", json.errors);
           setError("Failed to fetch questions.");
-          break;
+          return;
         }
 
-        const fetchedQuestions = json.data.questions.map(
-          transformSubgraphQuestion
-        );
-        if (fetchedQuestions.length === 0) {
-          hasMore = false;
-          break;
+        // Process and add questions one by one
+        for (const question of json.data.questions) {
+          if (abortController.signal.aborted) break;
+          const transformedQuestion = transformSubgraphQuestion(question);
+          currentQuestions.push(transformedQuestion);
+          setQuestions(prev => [...prev, transformedQuestion]);
         }
 
-        allQuestions = [...allQuestions, ...fetchedQuestions];
-        if (fetchedQuestions.length < BATCH_SIZE) {
-          hasMore = false;
-          break;
-        }
-
-        lastCreatedTimestamp =
-          fetchedQuestions[fetchedQuestions.length - 1].createdTimestamp;
-      }
-
-      if (!abortController.signal.aborted) {
-        setQuestions(allQuestions);
+        // Check if we should continue fetching
+        hasMore = json.data.questions.length === BATCH_SIZE;
       }
     } catch (error: unknown) {
       if (error instanceof Error && error.name === "AbortError") {
@@ -354,24 +344,24 @@ export const useQuestions = ({
       }
     }
     return abortController;
-  }, [selectedChain, searchTerm]);
+  }, [selectedChain, searchTerm]); // Removed questions from dependencies
 
   useEffect(() => {
     currentChainRef.current = selectedChain.id;
     setQuestions([]);
     let controller: AbortController | undefined;
-    fetchAllQuestions().then((c) => (controller = c));
+    fetchAllBatches().then((c) => (controller = c));
 
     return () => {
       if (controller) {
         controller.abort();
       }
     };
-  }, [fetchAllQuestions]);
+  }, [selectedChain.id, searchTerm, fetchAllBatches]);
 
   return {
     questions,
     loading,
-    error,
+    error
   };
 };

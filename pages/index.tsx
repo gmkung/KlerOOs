@@ -72,6 +72,32 @@ const theme = createTheme({
 
 const QUESTIONS_PER_PAGE = 20;
 
+const LoadingDots = () => {
+    const [dots, setDots] = useState('');
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDots(prev => prev.length >= 3 ? '' : prev + '.');
+        }, 500);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <span style={{
+            display: 'inline-block',
+            width: '1.1em',
+            textAlign: 'left',
+            fontSize: '0.8em',
+            opacity: 0.6,
+            position: 'relative',
+            top: '-2px'
+        }}>
+            {dots}
+        </span>
+    );
+};
+
 export default function Home() {
     const router = useRouter();
     const { chain, q: searchQuery, id: questionId, arbitrated } = router.query;
@@ -235,11 +261,24 @@ export default function Home() {
                                 >
                                     {!selectedQuestion && (
                                         <>
-                                            <span style={{ color: '#000' }}>Verify </span>
-                                            <span style={{ color: '#4A148C' }}>
-                                                {filteredQuestions.length}
-                                            </span>
-                                            <span style={{ color: '#000' }}> Questions</span>
+                                            {filteredQuestions.length === 0 ? (
+                                                <span style={{ color: '#4A148C' }}>
+                                                    Loading<LoadingDots />
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    <span style={{ color: '#000' }}>Verify </span>
+                                                    <span style={{ color: '#4A148C' }}>
+                                                        {filteredQuestions.length}
+                                                        {questionsLoading && (
+                                                            <span style={{ color: '#4A148C' }}>
+                                                                + <LoadingDots />
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    <span style={{ color: '#000' }}> Questions</span>
+                                                </>
+                                            )}
                                         </>
                                     )}
                                 </Typography>
@@ -403,7 +442,7 @@ export default function Home() {
                         <>
                             <QuestionList
                                 questions={currentQuestions}
-                                loading={questionsLoading}
+                                loading={questions.length == 0}
                                 onQuestionSelect={handleQuestionSelect}
                             />
 
