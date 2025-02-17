@@ -28,9 +28,10 @@ import { SUPPORTED_CHAINS, type Chain } from '@/constants/chains';
 
 const theme = createTheme({
     typography: {
-        fontFamily: '"Open Sans", "Helvetica", "Arial", sans-serif',
+        fontFamily: "'Inter', sans-serif",
         h1: {
-            fontFamily: '"Open Sans", "Helvetica", "Arial", sans-serif',
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 700
         },
         h2: {
             fontFamily: '"Open Sans", "Helvetica", "Arial", sans-serif',
@@ -57,13 +58,50 @@ const theme = createTheme({
     palette: {
         mode: 'light',
         primary: {
-            main: '#7B1FA2', // Deep Purple
+            main: '#623CEA', // Kleros primary purple
+            light: '#B197FC', // Focus ring color
+            dark: '#5432C4', // Primary hover
+        },
+        secondary: {
+            main: '#2E3148', // Kleros secondary
         },
         background: {
-            default: '#F8F5FF', // Very light purple
-            paper: '#FFFFFF',
+            default: '#FFFFFF',
+            paper: '#F9FAFB', // backgroundAlt
+        },
+        text: {
+            primary: '#212121',
+            secondary: '#555555',
+        },
+        error: {
+            main: '#F44336'
+        },
+        warning: {
+            main: '#FF9800'
+        },
+        success: {
+            main: '#4CAF50'
+        },
+        action: {
+            hover: 'rgba(98, 60, 234, 0.04)',
+            selected: 'rgba(98, 60, 234, 0.08)',
+            disabled: '0.6'
+        },
+        grey: {
+            50: '#F5F5F6',
+            100: '#E8E8E9',
+            200: '#D1D1D2',
+            300: '#BABBBC',
+            400: '#9FA0A2',
+            500: '#6B6C6F',
+            600: '#4A4B4E',
+            700: '#1D1E20',
         },
     },
+    shape: {
+        borderRadius: 4 // radii.sm
+    },
+
 });
 
 const QUESTIONS_PER_PAGE = 20;
@@ -87,12 +125,16 @@ const LoadingDots = () => {
             fontSize: '0.8em',
             opacity: 0.6,
             position: 'relative',
-            top: '-2px'
+            top: '-2px',
+            color: theme.palette.primary.main,
         }}>
             {dots}
         </span>
     );
 };
+
+type FilterValue = string | number | boolean | null;
+type QuestionFilters = Record<keyof Question | string, FilterValue>;
 
 export default function Home() {
     const router = useRouter();
@@ -121,7 +163,7 @@ export default function Home() {
 
     const { address, isConnected } = useWallet();
 
-    const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+    const [activeFilters, setActiveFilters] = useState<QuestionFilters>({});
 
     const handleQuestionSelect = (question: Question) => {
         router.push({
@@ -167,17 +209,23 @@ export default function Home() {
 
                 // Fuzzy text search for title and description
                 if (field === 'title' || field === 'description') {
-                    return String(questionValue).toLowerCase().includes(value.toLowerCase());
+                    if (typeof questionValue === 'string' && typeof value === 'string') {
+                        return questionValue.toLowerCase().includes(value.toLowerCase());
+                    }
+                    return false;
                 }
 
                 // Default handling for other fields
                 if (typeof value === 'string') {
-                    return String(questionValue).toLowerCase() === value.toLowerCase();
+                    if (typeof questionValue === 'string') {
+                        return questionValue.toLowerCase() === value.toLowerCase();
+                    }
+                    return false;
                 }
                 if (typeof value === 'number') {
                     return Number(questionValue) === value;
                 }
-                return questionValue === value;
+                return false; // Default to false for incompatible types
             });
         });
     }, [questions, activeFilters]);
@@ -279,21 +327,21 @@ export default function Home() {
                                     {!selectedQuestion && (
                                         <>
                                             {filteredQuestions.length === 0 ? (
-                                                <span style={{ color: '#4A148C' }}>
+                                                <span style={{ color: theme.palette.primary.main }}>
                                                     Loading<LoadingDots />
                                                 </span>
                                             ) : (
                                                 <>
-                                                    <span style={{ color: '#000' }}>Verify </span>
-                                                    <span style={{ color: '#4A148C' }}>
+                                                    <span style={{ color: theme.palette.text.primary }}>Verify </span>
+                                                    <span style={{ color: theme.palette.primary.main }}>
                                                         {filteredQuestions.length}
                                                         {questionsLoading && (
-                                                            <span style={{ color: '#4A148C' }}>
+                                                            <span style={{ color: theme.palette.primary.main }}>
                                                                 + <LoadingDots />
                                                             </span>
                                                         )}
                                                     </span>
-                                                    <span style={{ color: '#000' }}> Questions</span>
+                                                    <span style={{ color: theme.palette.text.primary }}> Questions</span>
                                                 </>
                                             )}
                                         </>

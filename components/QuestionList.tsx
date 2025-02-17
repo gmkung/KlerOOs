@@ -28,6 +28,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import { Question, QuestionPhase, ArbitrationStatus } from '@/types/questions';
 import { formatDistanceToNow, format } from 'date-fns';
 import { formatUnits } from 'ethers';
+import { createTheme } from '@mui/material/styles';
 
 interface QuestionListProps {
   questions: Question[];
@@ -166,6 +167,8 @@ const DynamicFilters: FC<{
   );
 };
 
+const theme = createTheme();
+
 export const QuestionList: FC<QuestionListProps> = ({
   questions,
   loading,
@@ -175,11 +178,11 @@ export const QuestionList: FC<QuestionListProps> = ({
   const getPhaseColor = (phase: QuestionPhase) => {
     switch (phase) {
       case QuestionPhase.OPEN:
-        return 'secondary';
+        return 'primary';
       case QuestionPhase.PENDING_ARBITRATION:
         return 'warning';
       case QuestionPhase.FINALIZED:
-        return 'default';
+        return 'success';
       case QuestionPhase.SETTLED_TOO_SOON:
         return 'error';
       case QuestionPhase.UPCOMING:
@@ -291,7 +294,23 @@ export const QuestionList: FC<QuestionListProps> = ({
   return (
     <Box>
       <DynamicFilters onFilterChange={onFilterChange} />
-      <TableContainer component={Paper} elevation={2} sx={{ mb: 4 }}>
+      <TableContainer 
+        component={Paper} 
+        elevation={2} 
+        sx={{ 
+          borderRadius: theme.shape.borderRadius,
+          '& .MuiTableHead-root': {
+            backgroundColor: theme.palette.background.paper,
+            '& .MuiTableCell-head': {
+              fontWeight: 700,
+              color: theme.palette.text.primary
+            }
+          },
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: '#FAFAFA'
+          }
+        }}
+      >
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'background.default' }}>
@@ -328,7 +347,15 @@ export const QuestionList: FC<QuestionListProps> = ({
                   onClick={() => onQuestionSelect(question)}
                   sx={{
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: 'action.hover' },
+                    '&:hover': { 
+                      bgcolor: '#FAFAFA',
+                      '& .MuiTypography-root': {
+                        color: '#623CEA', // Kleros primary purple
+                      },
+                      '& .MuiTableCell-root': {
+                        color: '#623CEA',
+                      }
+                    },
                     '&:last-child td, &:last-child th': { border: 0 }
                   }}
                 >

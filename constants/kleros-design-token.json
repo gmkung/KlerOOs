@@ -1,0 +1,405 @@
+{
+  "$schema": "https://raw.githubusercontent.com/design-tokens/designtokens.org/main/schema.json",
+  "metadata": {
+    "name": "Kleros Design Tokens",
+    "version": "1.0.0",
+    "description": "A single-file reference for Kleros UI brand and component design tokens."
+  },
+
+  "colors": {
+    "primary": {
+      "value": "#623CEA",
+      "type": "color",
+      "description": "Main Kleros purple brand color."
+    },
+    "primaryHover": {
+      "value": "#5432C4",
+      "type": "color",
+      "description": "Hover state for primary brand color."
+    },
+    "secondary": {
+      "value": "#2E3148",
+      "type": "color",
+      "description": "Secondary color often used for backgrounds or text."
+    },
+    "accent": {
+      "value": "#FFD666",
+      "type": "color",
+      "description": "Accent highlight color (example)."
+    },
+    "success": {
+      "value": "#4CAF50",
+      "type": "color"
+    },
+    "warning": {
+      "value": "#FF9800",
+      "type": "color"
+    },
+    "error": {
+      "value": "#F44336",
+      "type": "color"
+    },
+    "background": {
+      "value": "#FFFFFF",
+      "type": "color"
+    },
+    "backgroundAlt": {
+      "value": "#F9FAFB",
+      "type": "color",
+      "description": "Alternate background color, typically used for subtle sections or stripes."
+    },
+    "textPrimary": {
+      "value": "#212121",
+      "type": "color"
+    },
+    "textSecondary": {
+      "value": "#555555",
+      "type": "color"
+    },
+    "border": {
+      "value": "#E0E0E0",
+      "type": "color"
+    },
+    "focusRing": {
+      "value": "#B197FC",
+      "type": "color",
+      "description": "Outline color for keyboard focus states."
+    }
+  },
+
+  "opacity": {
+    "disabled": {
+      "value": 0.6,
+      "type": "opacity",
+      "description": "Default disabled state opacity."
+    }
+  },
+
+  "spacing": {
+    "none": {
+      "value": "0px",
+      "type": "spacing"
+    },
+    "xs": {
+      "value": "4px",
+      "type": "spacing"
+    },
+    "sm": {
+      "value": "8px",
+      "type": "spacing"
+    },
+    "md": {
+      "value": "16px",
+      "type": "spacing"
+    },
+    "lg": {
+      "value": "24px",
+      "type": "spacing"
+    },
+    "xl": {
+      "value": "32px",
+      "type": "spacing"
+    }
+  },
+
+  "radii": {
+    "none": {
+      "value": "0px",
+      "type": "borderRadius"
+    },
+    "sm": {
+      "value": "4px",
+      "type": "borderRadius"
+    },
+    "md": {
+      "value": "6px",
+      "type": "borderRadius"
+    },
+    "lg": {
+      "value": "8px",
+      "type": "borderRadius"
+    },
+    "pill": {
+      "value": "9999px",
+      "type": "borderRadius",
+      "description": "Typically used for pill-shaped elements."
+    }
+  },
+
+  "typography": {
+    "fontFamilies": {
+      "base": {
+        "value": "'Inter', sans-serif",
+        "type": "fontFamily"
+      }
+    },
+    "fontSizes": {
+      "xs": {
+        "value": "12px",
+        "type": "fontSize"
+      },
+      "sm": {
+        "value": "14px",
+        "type": "fontSize"
+      },
+      "md": {
+        "value": "16px",
+        "type": "fontSize"
+      },
+      "lg": {
+        "value": "18px",
+        "type": "fontSize"
+      },
+      "xl": {
+        "value": "24px",
+        "type": "fontSize"
+      },
+      "xxl": {
+        "value": "32px",
+        "type": "fontSize"
+      }
+    },
+    "lineHeights": {
+      "tight": {
+        "value": 1.2,
+        "type": "lineHeight"
+      },
+      "normal": {
+        "value": 1.5,
+        "type": "lineHeight"
+      },
+      "relaxed": {
+        "value": 1.7,
+        "type": "lineHeight"
+      }
+    },
+    "fontWeights": {
+      "regular": {
+        "value": 400,
+        "type": "fontWeight"
+      },
+      "medium": {
+        "value": 500,
+        "type": "fontWeight"
+      },
+      "bold": {
+        "value": 700,
+        "type": "fontWeight"
+      }
+    }
+  },
+
+  "shadows": {
+    "sm": {
+      "value": "0 1px 2px rgba(0,0,0,0.05)",
+      "type": "shadow"
+    },
+    "md": {
+      "value": "0 2px 4px rgba(0,0,0,0.1)",
+      "type": "shadow"
+    },
+    "lg": {
+      "value": "0 4px 8px rgba(0,0,0,0.15)",
+      "type": "shadow"
+    }
+  },
+
+  "breakpoints": {
+    "sm": {
+      "value": "576px",
+      "type": "dimension"
+    },
+    "md": {
+      "value": "768px",
+      "type": "dimension"
+    },
+    "lg": {
+      "value": "992px",
+      "type": "dimension"
+    },
+    "xl": {
+      "value": "1200px",
+      "type": "dimension"
+    }
+  },
+
+  "transitions": {
+    "fast": {
+      "value": "0.15s ease-in-out",
+      "type": "transition"
+    },
+    "normal": {
+      "value": "0.3s ease-in-out",
+      "type": "transition"
+    },
+    "slow": {
+      "value": "0.5s ease-in-out",
+      "type": "transition"
+    }
+  },
+
+  "zIndices": {
+    "dropdown": {
+      "value": 1000,
+      "type": "other"
+    },
+    "modal": {
+      "value": 1300,
+      "type": "other"
+    },
+    "tooltip": {
+      "value": 1500,
+      "type": "other"
+    }
+  },
+
+  "components": {
+    "button": {
+      "default": {
+        "fontFamily": "{typography.fontFamilies.base}",
+        "fontSize": "{typography.fontSizes.md}",
+        "fontWeight": "{typography.fontWeights.medium}",
+        "borderRadius": "{radii.sm}",
+        "paddingX": "{spacing.md}",
+        "paddingY": "{spacing.sm}",
+        "color": "{colors.background}",
+        "backgroundColor": "{colors.primary}",
+        "transition": "{transitions.normal}",
+        "hover": {
+          "backgroundColor": "{colors.primaryHover}"
+        },
+        "focus": {
+          "outlineColor": "{colors.focusRing}",
+          "outlineOffset": "2px",
+          "outlineStyle": "solid",
+          "outlineWidth": "2px"
+        },
+        "disabled": {
+          "opacity": "{opacity.disabled}",
+          "cursor": "not-allowed"
+        }
+      },
+      "secondary": {
+        "borderRadius": "{radii.sm}",
+        "backgroundColor": "{colors.secondary}",
+        "color": "{colors.background}",
+        "hover": {
+          "backgroundColor": "#22243E"
+        }
+      },
+      "text": {
+        "color": "{colors.primary}",
+        "backgroundColor": "transparent",
+        "hover": {
+          "backgroundColor": "{colors.backgroundAlt}"
+        }
+      }
+    },
+
+    "card": {
+      "default": {
+        "padding": "{spacing.md}",
+        "borderRadius": "{radii.md}",
+        "boxShadow": "{shadows.sm}",
+        "backgroundColor": "{colors.background}",
+        "borderColor": "{colors.border}",
+        "borderWidth": "1px",
+        "borderStyle": "solid"
+      },
+      "hoverable": {
+        "boxShadow": "{shadows.md}",
+        "transition": "{transitions.fast}"
+      }
+    },
+
+    "input": {
+      "default": {
+        "fontFamily": "{typography.fontFamilies.base}",
+        "fontSize": "{typography.fontSizes.md}",
+        "color": "{colors.textPrimary}",
+        "backgroundColor": "{colors.background}",
+        "borderColor": "{colors.border}",
+        "borderRadius": "{radii.sm}",
+        "paddingX": "{spacing.sm}",
+        "paddingY": "{spacing.xs}",
+        "focus": {
+          "outlineColor": "{colors.focusRing}",
+          "outlineOffset": "2px",
+          "outlineWidth": "2px"
+        }
+      },
+      "error": {
+        "borderColor": "{colors.error}"
+      },
+      "success": {
+        "borderColor": "{colors.success}"
+      }
+    },
+
+    "modal": {
+      "overlay": {
+        "backgroundColor": "rgba(0,0,0,0.5)",
+        "zIndex": "{zIndices.modal}"
+      },
+      "content": {
+        "padding": "{spacing.lg}",
+        "borderRadius": "{radii.md}",
+        "backgroundColor": "{colors.background}",
+        "width": "500px",
+        "maxWidth": "90vw"
+      }
+    },
+
+    "tooltip": {
+      "default": {
+        "fontSize": "{typography.fontSizes.sm}",
+        "color": "{colors.background}",
+        "backgroundColor": "{colors.textPrimary}",
+        "borderRadius": "{radii.sm}",
+        "paddingX": "{spacing.sm}",
+        "paddingY": "{spacing.xs}",
+        "zIndex": "{zIndices.tooltip}",
+        "arrowSize": "5px"
+      }
+    },
+
+    "table": {
+      "header": {
+        "fontWeight": "{typography.fontWeights.bold}",
+        "backgroundColor": "{colors.backgroundAlt}",
+        "padding": "{spacing.sm}",
+        "borderBottomColor": "{colors.border}"
+      },
+      "row": {
+        "padding": "{spacing.sm}",
+        "hover": {
+          "backgroundColor": "#FAFAFA"
+        }
+      }
+    },
+
+    "list": {
+      "default": {
+        "fontSize": "{typography.fontSizes.md}",
+        "itemSpacing": "{spacing.sm}"
+      }
+    },
+
+    "tabs": {
+      "tab": {
+        "fontSize": "{typography.fontSizes.md}",
+        "fontWeight": "{typography.fontWeights.medium}",
+        "paddingX": "{spacing.md}",
+        "paddingY": "{spacing.sm}",
+        "borderBottomWidth": "2px",
+        "borderBottomColor": "transparent",
+        "hover": {
+          "borderBottomColor": "{colors.primary}"
+        },
+        "selected": {
+          "borderBottomColor": "{colors.primary}"
+        }
+      }
+    }
+  }
+}
